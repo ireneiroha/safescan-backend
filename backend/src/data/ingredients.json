@@ -1,0 +1,78 @@
+{
+  "glycerin": {
+    "status": "Safe",
+    "explanation": "Common humectant/moisturizer; generally well tolerated in topical products."
+  },
+  "aqua": {
+    "status": "Safe",
+    "explanation": "Water; used as a solvent/base ingredient."
+  },
+  "water": {
+    "status": "Safe",
+    "explanation": "Water; used as a solvent/base ingredient."
+  },
+  "cocamidopropyl betaine": {
+    "status": "Risky",
+    "explanation": "Can irritate sensitive skin in some people; patch-test if prone to reactions."
+  },
+  "paraben": {
+    "status": "Risky",
+    "explanation": "Paraben preservatives can raise sensitivity concerns for some users; prefer lower exposure if worried."
+  },
+  "methylparaben": {
+    "status": "Risky",
+    "explanation": "Paraben preservative; some users prefer to avoid due to sensitivity concerns."
+  },
+  "propylparaben": {
+    "status": "Risky",
+    "explanation": "Paraben preservative; some users prefer to avoid due to sensitivity concerns."
+  },
+  "fragrance": {
+    "status": "Risky",
+    "explanation": "Fragrance mixes may trigger irritation or allergies in sensitive users."
+  },
+  "perfume": {
+    "status": "Risky",
+    "explanation": "Fragrance mixes may trigger irritation or allergies in sensitive users."
+  },
+  "formaldehyde": {
+    "status": "Restricted",
+    "explanation": "Known hazardous substance; generally restricted/regulated in consumer products."
+  },
+  "formalin": {
+    "status": "Restricted",
+    "explanation": "Formaldehyde solution; associated with significant health risks; generally restricted/regulated."
+  },
+  "hydroquinone": {
+    "status": "Restricted",
+    "explanation": "Skin-lightening active with safety concerns; regulated/restricted in many places."
+  },
+  "mercury": {
+    "status": "Restricted",
+    "explanation": "Toxic heavy metal; prohibited/restricted in cosmetics and personal care."
+  },
+  "lead": {
+    "status": "Restricted",
+    "explanation": "Toxic heavy metal; restricted in cosmetics; avoid exposure."
+  },
+  "triclosan": {
+    "status": "Restricted",
+    "explanation": "Antibacterial agent with safety/environment concerns; restricted in several jurisdictions."
+  },
+  "sodium lauryl sulfate": {
+    "status": "Risky",
+    "explanation": "Cleansing surfactant that may be drying/irritating for sensitive skin."
+  },
+  "sls": {
+    "status": "Risky",
+    "explanation": "Often refers to sodium lauryl sulfate; can be drying/irritating for some users."
+  },
+  "sodium laureth sulfate": {
+    "status": "Risky",
+    "explanation": "Cleansing surfactant; generally milder than SLS but may still irritate sensitive users."
+  },
+  "phenoxyethanol": {
+    "status": "Risky",
+    "explanation": "Preservative; generally safe at typical concentrations but may irritate very sensitive skin."
+  }
+}
