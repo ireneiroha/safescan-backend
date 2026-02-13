@@ -3,6 +3,8 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  // Fallback to individual vars if DATABASE_URL not set
   host: process.env.PGHOST || 'localhost',
   port: process.env.PGPORT ? parseInt(process.env.PGPORT, 10) : 5432,
   user: process.env.PGUSER || 'postgres',

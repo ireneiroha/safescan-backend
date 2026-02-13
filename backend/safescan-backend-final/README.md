@@ -119,4 +119,4 @@ Keep uploaded images under 5MB and tightly cropped for better OCR accuracy
 
 License
 
-For academic and demonstration purposes.
+For capstone project purposes.
