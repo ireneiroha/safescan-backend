@@ -1,0 +1,314 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SafeScan API (MVP)",
+    "version": "1.0.0",
+    "description": "SafeScan backend API for OCR-based ingredient scanning and safety classification. Informational only; not medical advice."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local dev"
+    },
+    {
+      "url": "https://{host}",
+      "description": "Deployed (set host variable)",
+      "variables": {
+        "host": {
+          "default": "your-domain.com"
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Service health checks"
+    },
+    {
+      "name": "Scan",
+      "description": "OCR + ingredient analysis"
+    },
+    {
+      "name": "Auth (Optional)",
+      "description": "Post-MVP authentication endpoints (optional)"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scan": {
+      "post": {
+        "tags": [
+          "Scan"
+        ],
+        "summary": "Scan an ingredient label image (OCR \u2192 analysis)",
+        "description": "Upload a JPG/PNG image of an ingredient label. Returns extracted text and classified ingredients.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "image"
+                ],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Ingredient label image (JPG/PNG, max 5MB)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scan + analysis result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "OCR could not read text",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scan/analyze": {
+      "post": {
+        "tags": [
+          "Scan"
+        ],
+        "summary": "Analyze edited OCR text (no image)",
+        "description": "Use this after the user reviews/edits extracted text on the frontend.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "service": {
+            "type": "string",
+            "example": "safescan-backend"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-02-10T12:00:00.000Z"
+          }
+        }
+      },
+      "AnalyzeRequest": {
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "example": "Ingredients: Aqua, Glycerin, Paraben, Fragrance"
+          }
+        }
+      },
+      "IngredientResult": {
+        "type": "object",
+        "properties": {
+          "ingredient": {
+            "type": "string",
+            "example": "paraben"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Safe",
+              "Risky",
+              "Restricted",
+              "Unknown"
+            ],
+            "example": "Risky"
+          },
+          "explanation": {
+            "type": "string",
+            "example": "Linked to hormone disruption in some studies; sensitive users may prefer to avoid."
+          },
+          "matchedAs": {
+            "type": "string",
+            "nullable": true,
+            "example": "paraben"
+          }
+        }
+      },
+      "ScanResponse": {
+        "type": "object",
+        "properties": {
+          "extractedText": {
+            "type": "string"
+          },
+          "ingredientsDetected": {
+            "type": "integer",
+            "example": 12
+          },
+          "unknownCount": {
+            "type": "integer",
+            "example": 3
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IngredientResult"
+            }
+          },
+          "disclaimer": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string",
+            "example": "a1b2c3d4e5"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Image is required. Please take a photo or upload a JPG/PNG."
+          },
+          "requestId": {
+            "type": "string",
+            "example": "a1b2c3d4e5"
+          }
+        }
+      }
+    }
+  }
+}
