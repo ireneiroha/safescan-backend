@@ -104,7 +104,7 @@ After starting the server, open:
 http://localhost:5000/api/docs
 Database (Docker PostgreSQL)
 docker run --name safescan-postgres \
-  -e POSTGRES_PASSWORD=Obasi6220@ \
+  -e POSTGRES_PASSWORD=mypassword \
   -e POSTGRES_DB=safescan \
   -p 5432:5432 -d postgres:latest
 
