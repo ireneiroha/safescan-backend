@@ -1,4 +1,4 @@
-import './App.css'
+import './themes/variables.css'
 
 function App() {
   return (
