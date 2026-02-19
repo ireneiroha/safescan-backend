@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+@keyframes scan-line {
+  from {
+    top: 0;
+  }
+  to {
+    top: 100%;
+  }
+}
