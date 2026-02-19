@@ -2,6 +2,17 @@ const normalizeIngredients = require('../utils/ingredientNormalizer');
 const classifyIngredient = require('../utils/riskClassifier');
 
 /**
+ * Build sanitized payload for AI (only announcement text, no personal data).
+ */
+function buildAiPayload(input) {
+  // Input is already just text, but ensure no personal data
+  const sanitized = input.replace(/\b\d{10,}\b/g, '[PHONE REDACTED]') // Remove phone-like numbers
+                         .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL REDACTED]') // Remove emails
+                         .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN REDACTED]'); // Remove SSN-like patterns
+  return { text: sanitized };
+}
+
+/**
  * Analyze extracted text into per-ingredient results + summary.
  * Returns:
  * {
@@ -11,7 +22,11 @@ const classifyIngredient = require('../utils/riskClassifier');
  * }
  */
 module.exports = function analyzeText(text) {
-  const ingredients = normalizeIngredients(text);
+  // Sanitize input for AI safety
+  const payload = buildAiPayload(text);
+  const sanitizedText = payload.text;
+
+  const ingredients = normalizeIngredients(sanitizedText);
 
   const results = ingredients.map((ingredient) => {
     const { status, explanation, matchedKey } = classifyIngredient(ingredient);
