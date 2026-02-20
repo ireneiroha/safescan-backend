@@ -3,7 +3,7 @@ import Apple from '../../assets/icons/apple.svg?react'
 import Google from '../../assets/icons/google.svg?react'
 import Facebook from '../../assets/icons/facebook.svg?react'
 
-export default function SocialAuth({ auth }) {
+export default function SocialAuth({ auth, alternateLink, redirectTo }) {
     return (
         <div className="flex flex-col items-center gap-4 mt-8">
             <div className="flex items-center w-full gap-3">
@@ -33,7 +33,9 @@ export default function SocialAuth({ auth }) {
             <div>
                 <p className='text-text-secondary'>
                     Already have an account? {" "}
-                    <Link className='text-deep-teal'>{auth}</Link>
+                    <Link
+                    to={redirectTo}
+                    className='text-deep-teal'>{alternateLink}</Link>
                 </p>
             </div>
         </div>

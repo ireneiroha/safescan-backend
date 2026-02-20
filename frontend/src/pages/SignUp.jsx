@@ -36,7 +36,7 @@ export default function SignUp() {
                 // replace with actual API call
                 await new Promise((res) => setTimeout(res, 2000)); // remove once I have an API
                 navigate("/");
-            // eslint-disable-next-line no-unused-vars
+                // eslint-disable-next-line no-unused-vars
             } catch (err) {
                 // handle errors
                 setLoading(false);
@@ -114,6 +114,7 @@ export default function SignUp() {
                             type="submit"
                             variant="primary"
                             loading={loading}
+                            loadingText="Signing Up..."
                         />
 
                         <Button
@@ -127,7 +128,10 @@ export default function SignUp() {
                 </form>
 
                 <SocialAuth
-                auth="Sign Up" />
+                    auth="Sign Up"
+                    redirectTo="/login"
+                    alternateLink="Sign In"
+                />
             </div>
         </div>
     );
