@@ -4,6 +4,7 @@ import AuthTitle from "../components/ui/AuthTitle";
 import InputField from "../components/ui/InputField";
 import { validateSignup } from "../utils/validate";
 import Button from "../components/ui/Button";
+import SocialAuth from "../components/ui/SocialAuth";
 
 export default function SignUp() {
     const [values, setValues] = useState({
@@ -44,7 +45,7 @@ export default function SignUp() {
     }
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-bg-primary">
+        <div className="flex justify-center items-center min-h-screen bg-bg-primary py-10">
             <div className="w-full max-w-md p-4">
                 <AuthTitle
                     title="Create Account"
@@ -124,6 +125,9 @@ export default function SignUp() {
                         />
                     </div>
                 </form>
+
+                <SocialAuth
+                auth="Sign Up" />
             </div>
         </div>
     );

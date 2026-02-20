@@ -11,7 +11,7 @@ export default function Button({
 }) {
     const isDisabled = disabled || loading;
 
-    const base = "rounded-xl p-4 text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2";
+    const base = "rounded-xl p-4 text-sm font-bold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2";
 
     const variants = {
         primary: "bg-primary text-bg-input hover:bg-teal-700",
