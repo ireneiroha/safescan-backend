@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -11,6 +10,10 @@
     --color-danger: #EE443F;
     --color-risky: #FFAA00;
     --color-safe: #43B75D;
+    --color-bg-input: #FDFEFE;
+    --color-border: #E5E7EA;
+    --color-checkbox-border: #0D645D;
+    --color-deep-teal: #3D837D;
 
     /* typography */
     --font-size-xs: 0.75rem; /*12px*/
