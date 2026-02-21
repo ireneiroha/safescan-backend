@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import './themes/variables.css'
 import './styles/global.css'
 import './index.css'
@@ -8,27 +8,35 @@ import SignIn from './pages/SignIn'
 import Navbar from './components/layout/Navbar'
 import Home from './pages/Home'
 import ScrollToTop from './utils/ScrollToTop'
-import PrivateRoute from './utils/PrivateRoute'
+import Lookup from './pages/Lookup'
+
+const AUTH_PAGES = ['/register', '/login']
+
+function AppLayout() {
+  const { pathname } = useLocation()
+  const hideNavbar = AUTH_PAGES.includes(pathname)
+
+  return (
+    <div className="min-h-screen bg-bg-primary">
+      <ScrollToTop />
+      {!hideNavbar && <Navbar />}
+      <main>
+        <Routes>
+          <Route path="/" element={<Navigate to="/register" replace />} />
+          <Route path="/register" element={<SignUp />} />
+          <Route path="/login" element={<SignIn />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/lookup" element={<Lookup />} />
+        </Routes>
+      </main>
+    </div>
+  )
+}
 
 function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-bg-primary">
-        <ScrollToTop />
-        <Navbar />
-        <main>
-          <Routes>
-            <Route path="/" element={<Navigate to="/register" replace />} />
-            <Route path="/register" element={<SignUp />} />
-            <Route path="/login" element={<SignIn />} />
-            <Route path="/home" element={
-              <PrivateRoute allowGuest>
-                <Home />
-              </PrivateRoute>
-            } />
-          </Routes>
-        </main>
-      </div>
+      <AppLayout />
     </AuthProvider>
   )
 }
