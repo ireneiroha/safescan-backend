@@ -34,6 +34,14 @@ export default function SignUp() {
             setLoading(true);
             try {
                 // replace with actual API call
+                // const res = await fetch('/api/auth/register', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify(values)
+                // })
+                // const data = await res.json()
+                // login(data.user, data.token)
+                
                 await new Promise((res) => setTimeout(res, 2000)); // remove once I have an API
                 navigate("/");
                 // eslint-disable-next-line no-unused-vars
@@ -120,7 +128,7 @@ export default function SignUp() {
                         <Button
                             text="Continue as a Guest"
                             variant="outline"
-                            onClick={() => navigate("/")}
+                            onClick={() => navigate("/home")}
                             disabled={loading}
                             className="mt-0"
                         />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import SafeScanLogo from '../../assets/logo/safescan-logo.png'
+import { useAuth } from '../../context/AuthContext'
 
 const NAV_ITEMS = [
   {
@@ -52,12 +53,61 @@ const NAV_ITEMS = [
   },
 ]
 
+function GuestAvatar() {
+  return (
+    <div className="h-11 w-11 rounded-full bg-primary flex items-center justify-center shrink-0">
+      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    </div>
+  )
+}
+
+function Toast({ message, visible }) {
+  return (
+    <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
+      <div className="flex items-center gap-2 bg-gray-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg">
+        <svg className="h-4 w-4 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+        {message}
+      </div>
+    </div>
+  )
+}
+
+
 export default function Navbar() {
   const [open, setOpen] = useState(false)
+  const [toast, setToast] = useState({ visible: false, message: '' })
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+
+  const showToast = (message) => {
+    setToast({ visible: true, message })
+    setTimeout(() => setToast({ visible: false, message: '' }), 2000)
+  }
+
+  const handleViewProfile = () => {
+    if (!user) {
+      showToast("You're not logged in. Redirecting...")
+      setTimeout(() => { setOpen(false); navigate('/register') }, 2000)
+    } else {
+      setOpen(false)
+      navigate('/profile')
+    }
+  }
+
+  const handleNavClick = (item) => {
+    if (item.label === 'Logout') { logout(); setOpen(false); navigate('/'); return }
+    setOpen(false)
+  }
 
   return (
     <>
+      <Toast message={toast.message} visible={toast.visible} />
+
       <nav className="mx-auto flex max-w-2xl items-center justify-between p-3 md:px-6 md:py-5">
         <div className="flex items-center">
           <img src={SafeScanLogo} alt="Safe scan logo" />
@@ -84,38 +134,27 @@ export default function Navbar() {
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 z-50 h-full w-[285px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
-          open ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`fixed top-0 right-0 z-50 h-full w-[285px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'
+          }`}
       >
         {/* User profile */}
         <div className="flex items-center justify-between px-6 pt-8 pb-6">
           <div className="flex items-center gap-3">
-            <img
-              src="https://i.pinimg.com/736x/13/17/de/1317de295aa8b013ce1a9b0cf03cfb64.jpg"
-              alt="User profile"
-              className="h-11 w-11 rounded-full object-cover"
-            />
+            {user?.avatar
+              ? <img src={user.avatar} alt="User avatar" className="h-11 w-11 rounded-full object-cover" />
+              : <GuestAvatar />
+            }
             <div>
-              <p className="font-bold text-base text-text-title">Sarah Johnson</p>
-              <Link
-                to="/profile"
-                onClick={() => setOpen(false)}
-                className="text-xs text-primary hover:underline flex items-center gap-1"
-              >
+              <p className="font-semibold text-gray-900">{user?.name ?? 'User'}</p>
+              <button type="button" onClick={handleViewProfile} className="text-xs text-primary hover:underline flex items-center gap-1">
                 View Profile
                 <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </Link>
+              </button>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary"
-            aria-label="Close menu"
-          >
+          <button type="button" onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors" aria-label="Close menu">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -130,16 +169,14 @@ export default function Navbar() {
               <Link
                 key={item.label}
                 to={item.path}
-                onClick={() => setOpen(false)}
-                className={`flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-bg-secondary text-primary'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+                onClick={() => handleNavClick(item)}
+                className={`flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-medium transition-colors ${isActive
+                  ? 'bg-bg-secondary text-primary'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
               >
-                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                  isActive ? 'bg-[#D1DEDB] text-primary' : 'bg-[#EEF8F6] text-text-secondary'
-                }`}>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isActive ? 'bg-[#D1DEDB] text-primary' : 'bg-[#EEF8F6] text-text-secondary'
+                  }`}>
                   {item.icon}
                 </span>
                 {item.label}

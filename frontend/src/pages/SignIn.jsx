@@ -5,6 +5,7 @@ import InputField from "../components/ui/InputField";
 import Button from "../components/ui/Button";
 import { validateLogin } from "../utils/validate";
 import SocialAuth from "../components/ui/SocialAuth";
+// import { useAuth } from "../context/AuthContext";
 
 export default function SignIn() {
     const [values, setValues] = useState({
@@ -15,6 +16,7 @@ export default function SignIn() {
     const [submitted, setSubmitted] = useState(false);
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    // const { login } = useAuth()
 
     function handleChange(e) {
         const { name, value } = e.target;
@@ -32,8 +34,17 @@ export default function SignIn() {
             setLoading(true);
             try {
                 // replace with actual API call
+                // const res = await fetch('/api/auth/login', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify(values)
+                // })
+                // const data = await res.json()
+                // login(data.user, data.token)
                 await new Promise((res) => setTimeout(res, 2000)); // remove once I have an API
+
                 navigate("/home");
+                // eslint-disable-next-line no-unused-vars
             } catch (err) {
                 setLoading(false);
             }
