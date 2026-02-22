@@ -9,6 +9,8 @@ import Navbar from './components/layout/Navbar'
 import Home from './pages/Home'
 import ScrollToTop from './utils/ScrollToTop'
 import Lookup from './pages/Lookup'
+// import PrivateRoute from './utils/PrivateRoute'
+import History from './pages/History'
 
 const AUTH_PAGES = ['/register', '/login']
 
@@ -27,6 +29,12 @@ function AppLayout() {
           <Route path="/login" element={<SignIn />} />
           <Route path="/home" element={<Home />} />
           <Route path="/lookup" element={<Lookup />} />
+          {/* <Route path='/history' element={
+            <PrivateRoute>
+              <History />
+            </PrivateRoute>
+          } /> */}
+          <Route path='/history' element={<History />} />
         </Routes>
       </main>
     </div>
