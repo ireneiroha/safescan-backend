@@ -1,14 +1,17 @@
 export const SAFETY_CONFIG = {
     safe: {
         label: 'Safe',
+        historyLabel: 'Safe',
         className: 'bg-[#ECF8EF] text-[#43B75D] border border-[#43B75D]',
     },
     risky: {
         label: 'Risky',
+        historyLabel: 'Risky',
         className: 'bg-[#FFF7E6] text-risky border border-risky',
     },
     restricted: {
         label: 'Restricted',
+        historyLabel: 'Danger',
         className: 'bg-[#FDECEC] text-danger border border-danger',
     },
 }
