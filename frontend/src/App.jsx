@@ -11,12 +11,13 @@ import ScrollToTop from './utils/ScrollToTop'
 import Lookup from './pages/Lookup'
 // import PrivateRoute from './utils/PrivateRoute'
 import History from './pages/History'
+import Results from './pages/Results'
 
-const AUTH_PAGES = ['/register', '/login']
+const AUTH_PAGES = ['/register', '/login', '/scan-result']
 
 function AppLayout() {
   const { pathname } = useLocation()
-  const hideNavbar = AUTH_PAGES.includes(pathname)
+  const hideNavbar = AUTH_PAGES.some(path => pathname.startsWith(path))
 
   return (
     <div className="min-h-screen bg-bg-primary">
@@ -35,6 +36,7 @@ function AppLayout() {
             </PrivateRoute>
           } /> */}
           <Route path='/history' element={<History />} />
+          <Route path='/scan-result/:id' element={<Results />} />
         </Routes>
       </main>
     </div>
