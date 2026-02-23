@@ -28,7 +28,7 @@ const MOCK_INGREDIENTS = [
   { name: 'Phenoxyethanol', safety: 'caution' },
 ]
 
-export default function Home() {
+export default function ScanLanding() {
   const fileInputRef = useRef(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [scanStatus, setScanStatus] = useState('idle') // 'idle' | 'scanning' | 'done'

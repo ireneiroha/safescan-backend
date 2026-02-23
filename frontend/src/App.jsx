@@ -6,13 +6,13 @@ import { AuthProvider } from './context/AuthContext'
 import SignUp from './pages/SignUp'
 import SignIn from './pages/SignIn'
 import Navbar from './components/layout/Navbar'
-import Home from './pages/Home'
 import ScrollToTop from './utils/ScrollToTop'
 import Lookup from './pages/Lookup'
 // import PrivateRoute from './utils/PrivateRoute'
 import History from './pages/History'
 import Results from './pages/Results'
 import Profile from './pages/Profile'
+import ScanLanding from './pages/ScanLanding'
 
 const AUTH_PAGES = ['/register', '/login', '/scan-result']
 
@@ -29,7 +29,7 @@ function AppLayout() {
           <Route path="/" element={<Navigate to="/register" replace />} />
           <Route path="/register" element={<SignUp />} />
           <Route path="/login" element={<SignIn />} />
-          <Route path="/home" element={<Home />} />
+          <Route path="/scan-home" element={<ScanLanding />} />
           <Route path="/lookup" element={<Lookup />} />
           {/* <Route path='/history' element={
             <PrivateRoute>
