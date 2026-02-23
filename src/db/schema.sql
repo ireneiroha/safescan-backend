@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS scans (
   user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   image_path TEXT,
   ocr_text TEXT,
+  product_category TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 

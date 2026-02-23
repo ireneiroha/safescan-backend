@@ -4,8 +4,14 @@ const requireAuth = require('../middlewares/requireAuth');
 
 router.use('/health', require('./health.routes'));
 
+// Public lookup endpoint
+router.use('/lookup', require('./lookup.routes'));
+
 // Protected MVP endpoints
 router.use('/scan', requireAuth, require('./scan.routes'));
+
+// Protected scan history endpoint
+router.use('/scans', requireAuth, require('./scans.routes'));
 
 // Protected Dataset endpoints
 router.use('/dataset', requireAuth, require('./dataset.routes'));
