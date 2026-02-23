@@ -108,7 +108,7 @@ export default function Navbar() {
     <>
       <Toast message={toast.message} visible={toast.visible} />
 
-      <nav className="mx-auto flex max-w-2xl items-center justify-between p-3 md:px-6 md:py-5">
+      <nav className="sticky top-0 z-30 bg-bg-primary shadow-sm mx-auto flex max-w-2xl items-center justify-between p-3 md:px-6 md:py-5">
         <div className="flex items-center">
           <img src={SafeScanLogo} alt="Safe scan logo" />
         </div>

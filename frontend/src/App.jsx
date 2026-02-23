@@ -12,6 +12,7 @@ import Lookup from './pages/Lookup'
 // import PrivateRoute from './utils/PrivateRoute'
 import History from './pages/History'
 import Results from './pages/Results'
+import Profile from './pages/Profile'
 
 const AUTH_PAGES = ['/register', '/login', '/scan-result']
 
@@ -37,6 +38,12 @@ function AppLayout() {
           } /> */}
           <Route path='/history' element={<History />} />
           <Route path='/scan-result/:id' element={<Results />} />
+          {/* <Route path="/settings" element={
+            <PrivateRoute>
+              <Profile />
+            </PrivateRoute>
+          } /> */}
+          <Route path='/settings' element={<Profile />} />
         </Routes>
       </main>
     </div>
