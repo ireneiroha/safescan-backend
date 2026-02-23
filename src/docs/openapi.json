@@ -1,0 +1,359 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SafeScan API",
+    "version": "1.0.0",
+    "description": "SafeScan backend API for OCR-based ingredient scanning and safety classification."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local dev"
+    },
+    {
+      "url": "https://safescan-backend-1.onrender.com",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Service health checks"
+    },
+    {
+      "name": "Scan",
+      "description": "OCR + ingredient analysis"
+    },
+    {
+      "name": "Scan History",
+      "description": "Retrieve user's scan history"
+    },
+    {
+      "name": "Lookup",
+      "description": "Public ingredient lookup"
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login with email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "user@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scan": {
+      "post": {
+        "tags": ["Scan"],
+        "summary": "Scan an ingredient label image (OCR → analysis)",
+        "description": "Upload a JPG/PNG image of an ingredient label. Returns extracted text and classified ingredients.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Ingredient label image (JPG/PNG, max 5MB)"
+                  },
+                  "productCategory": {
+                    "type": "string",
+                    "description": "Optional product category (e.g., Skincare, Haircare)",
+                    "example": "Skincare"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scan + analysis result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "422": {
+            "description": "OCR could not read text"
+          }
+        }
+      }
+    },
+    "/api/scan/analyze": {
+      "post": {
+        "tags": ["Scan"],
+        "summary": "Analyze edited OCR text (no image)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis result"
+          }
+        }
+      }
+    },
+    "/api/scans": {
+      "get": {
+        "tags": ["Scan History"],
+        "summary": "Get scan history for logged-in user",
+        "description": "Returns paginated list of scans created by the authenticated user.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 10 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated scan history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/lookup": {
+      "get": {
+        "tags": ["Lookup"],
+        "summary": "Lookup ingredient safety information",
+        "description": "Public endpoint to search for ingredient safety information.",
+        "parameters": [
+          {
+            "name": "ingredient",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "paraben"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ingredient information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LookupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - ingredient parameter required"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "ok" },
+          "service": { "type": "string", "example": "safescan-backend" },
+          "timestamp": { "type": "string", "example": "2024-01-15T10:30:00.000Z" }
+        }
+      },
+      "AnalyzeRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "example": "Ingredients: Aqua, Glycerin, Paraben, Fragrance"
+          }
+        }
+      },
+      "IngredientResult": {
+        "type": "object",
+        "properties": {
+          "ingredient": { "type": "string", "example": "paraben" },
+          "status": {
+            "type": "string",
+            "enum": ["Safe", "Risky", "Restricted", "Unknown"],
+            "example": "Risky"
+          },
+          "explanation": { "type": "string" },
+          "matchedKey": { "type": "string", "nullable": true }
+        }
+      },
+      "ScanResponse": {
+        "type": "object",
+        "properties": {
+          "extractedText": { "type": "string" },
+          "scanId": { "type": "integer" },
+          "productCategory": { "type": "string", "nullable": true },
+          "ingredients": { "type": "array", "items": { "type": "string" } },
+          "results": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IngredientResult" }
+          },
+          "summary": { "$ref": "#/components/schemas/ScanSummary" },
+          "disclaimer": { "type": "string" }
+        }
+      },
+      "ScanSummary": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "safe": { "type": "integer" },
+          "risky": { "type": "integer" },
+          "restricted": { "type": "integer" },
+          "unknown": { "type": "integer" }
+        }
+      },
+      "ScanHistoryItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "createdAt": { "type": "string" },
+          "extractedText": { "type": "string" },
+          "productCategory": { "type": "string", "nullable": true },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "safeCount": { "type": "integer" },
+              "riskyCount": { "type": "integer" },
+              "restrictedCount": { "type": "integer" },
+              "unknownCount": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "ScanHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ScanHistoryItem" }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": { "type": "integer" },
+              "limit": { "type": "integer" },
+              "total": { "type": "integer" },
+              "totalPages": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "LookupResponse": {
+        "type": "object",
+        "properties": {
+          "ingredient": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["Safe", "Risky", "Restricted", "Unknown"]
+          },
+          "explanation": { "type": "string" },
+          "matchedKey": { "type": "string", "nullable": true }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
