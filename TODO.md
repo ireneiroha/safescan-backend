@@ -1,13 +1,6 @@
-# TODO: Run SafeScan Backend Project
+# TODO - Fix Login 500 Error
 
-## Steps to Complete
-- [x] Edit src/server.js to add dotenv.config() at the top to load environment variables before app initialization.
-- [x] Navigate to safescan-backend-final/ directory.
-- [x] Run npm run dev to start the development server.
-- [x] Create missing dataset.controller.js to fix module not found error.
-- [x] Verify server starts on port 5000 without JWT_SECRET error.
-- [x] Test health endpoint: GET /api/health.
-- [ ] Test auth endpoints: POST /api/auth/login, POST /api/auth/verify.
-- [ ] Confirm protected routes work with/without token.
-- [ ] Check for any runtime errors and correct if needed (e.g., DB connection, rate limiting, CORS).
-- [ ] Final verification: Server running cleanly, all endpoints responding as expected.
+## Steps to Complete:
+- [x] 1. Update src/db/index.js - Add connection error handling and health check
+- [x] 2. Update src/controllers/auth.controller.js - Add defensive code, DB checks, and proper error messages
+- [x] 3. Update src/server.js - Connect to database on startup

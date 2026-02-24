@@ -1,6 +1,13 @@
-
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+
+// JWT Secret validation - defensive check
+const getJwtSecret = () => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not configured');
+  }
+  return process.env.JWT_SECRET;
+};
 
 exports.register = async (req, res) => {
   res.json({ message: 'Use /login to authenticate with email only' });
@@ -8,39 +15,90 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
+    // Check JWT_SECRET first (defensive)
+    let jwtSecret;
+    try {
+      jwtSecret = getJwtSecret();
+    } catch (secretError) {
+      console.error('JWT Secret configuration error:', secretError.message);
+      return res.status(500).json({ error: 'JWT secret not configured' });
+    }
+
+  
+
     const { email } = req.body;
+    
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // Find or create user
-    let result = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    // Try to find existing user
+    let result;
+    try {
+      result = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    } catch (dbError) {
+      console.error('Database query error:', dbError.message);
+      console.error('Stack:', dbError.stack);
+      return res.status(503).json({ error: 'Database connection failed' });
+    }
+
     let userId;
     if (result.rows.length === 0) {
-      const insert = await db.query('INSERT INTO users (email) VALUES ($1) RETURNING id', [email]);
-      userId = insert.rows[0].id;
+      // Create new user
+      try {
+        const insert = await db.query('INSERT INTO users (email) VALUES ($1) RETURNING id', [email]);
+        userId = insert.rows[0].id;
+      } catch (dbError) {
+        console.error('Database insert error:', dbError.message);
+        console.error('Stack:', dbError.stack);
+        return res.status(503).json({ error: 'Database connection failed' });
+      }
     } else {
       userId = result.rows[0].id;
     }
 
-    const token = jwt.sign({ userId, email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // Sign JWT
+    const token = jwt.sign({ userId, email }, jwtSecret, { expiresIn: '1h' });
     res.json({ token });
   } catch (e) {
-    console.error(e);
+    // Handle JWT signing errors
+    if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
+      console.error('JWT error:', e.message);
+      return res.status(500).json({ error: 'Authentication failed' });
+    }
+    
+    // Unexpected errors
+    console.error('Unexpected login error:', e.message);
+    console.error('Stack:', e.stack);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 exports.verify = async (req, res) => {
   try {
+    // Check JWT_SECRET first (defensive)
+    let jwtSecret;
+    try {
+      jwtSecret = getJwtSecret();
+    } catch (secretError) {
+      console.error('JWT Secret configuration error:', secretError.message);
+      return res.status(500).json({ error: 'JWT secret not configured' });
+    }
+
     const { token } = req.body;
     if (!token) {
       return res.status(400).json({ error: 'Token is required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, jwtSecret);
     res.json({ valid: true, user: { id: decoded.userId, email: decoded.email } });
   } catch (e) {
-    res.status(401).json({ error: 'Invalid token' });
+    if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    console.error('Token verification error:', e.message);
+    console.error('Stack:', e.stack);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
