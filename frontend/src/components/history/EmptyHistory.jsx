@@ -16,7 +16,7 @@ export default function EmptyHistory() {
             </p>
             <button
                 type="button"
-                onClick={() => navigate('/home')}
+                onClick={() => navigate('/scan-home')}
                 className="rounded-xl bg-primary px-5 py-4 text-xs uppercase font-bold text-white hover:bg-teal-700 transition-colors"
             >
                 Scan a product

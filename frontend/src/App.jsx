@@ -13,6 +13,7 @@ import History from './pages/History'
 import Results from './pages/Results'
 import Profile from './pages/Profile'
 import ScanLanding from './pages/ScanLanding'
+import Landing from './pages/Landing'
 
 const AUTH_PAGES = ['/register', '/login', '/scan-result']
 
@@ -26,7 +27,7 @@ function AppLayout() {
       {!hideNavbar && <Navbar />}
       <main>
         <Routes>
-          <Route path="/" element={<Navigate to="/register" replace />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/register" element={<SignUp />} />
           <Route path="/login" element={<SignIn />} />
           <Route path="/scan-home" element={<ScanLanding />} />

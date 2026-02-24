@@ -224,7 +224,7 @@ export default function Results() {
             <Button
                 text="Scan Another"
                 variant="primary"
-                onClick={() => navigate('/home')}
+                onClick={() => navigate('/scan-home')}
             />
         </div>
     );

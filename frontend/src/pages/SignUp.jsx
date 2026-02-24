@@ -128,7 +128,7 @@ export default function SignUp() {
                         <Button
                             text="Continue as a Guest"
                             variant="outline"
-                            onClick={() => navigate("/home")}
+                            onClick={() => navigate("/")}
                             disabled={loading}
                             className="mt-0"
                         />

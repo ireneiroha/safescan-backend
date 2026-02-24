@@ -1,17 +1,20 @@
+import ArrowIcon from '../../assets/icons/arrow-right.svg?react'
+
 export default function Button({
     text,
     loadingText,
     onClick,
     type = "button",
     disabled = false,
-    loading= false,
+    loading = false,
     variant = "primary",
     fullWidth = true,
+    showArrow = false,
     className = ""
 }) {
-    const isDisabled = disabled || loading;
+    const isDisabled = disabled || loading
 
-    const base = "rounded-xl p-4 text-sm font-bold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2";
+    const base = "group rounded-xl p-4 text-sm font-bold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 
     const variants = {
         primary: "bg-primary text-bg-input hover:bg-teal-700",
@@ -37,6 +40,12 @@ export default function Button({
                 </svg>
             )}
             {loading && loadingText ? loadingText : text}
+
+            {showArrow && (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full ml-1 shrink-0">
+                    <ArrowIcon className="transition-transform duration-200 group-hover:translate-x-1" />
+                </span>
+            )}
         </button>
     )
 }
