@@ -38,3 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_ingredients_normalized ON ingredients(normalized_
 
 -- Ensure required columns exist for evolving schema
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS password TEXT;
+
+-- Consent fields for POPIA/GDPR compliance (migration-safe)
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS consent_given BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS consent_timestamp TIMESTAMP WITH TIME ZONE NULL;

@@ -7,6 +7,9 @@ router.use('/health', require('./health.routes'));
 // Public lookup endpoint
 router.use('/lookup', require('./lookup.routes'));
 
+// Privacy policy endpoint (public)
+router.use('/privacy', require('./privacy.routes'));
+
 // Protected MVP endpoints
 router.use('/scan', requireAuth, require('./scan.routes'));
 

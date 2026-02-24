@@ -35,6 +35,10 @@
     {
       "name": "Auth",
       "description": "Authentication endpoints"
+    },
+    {
+      "name": "Privacy",
+      "description": "Privacy policy and legal information"
     }
   ],
   "paths": {
@@ -56,18 +60,37 @@
         }
       }
     },
+    "/api/privacy": {
+      "get": {
+        "tags": ["Privacy"],
+        "summary": "Get privacy policy and disclaimer",
+        "description": "Returns the SafeScan Privacy Policy and Disclaimer for user consent.",
+        "responses": {
+          "200": {
+            "description": "Privacy policy information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/register": {
       "post": {
         "tags": ["Auth"],
         "summary": "Register a new user",
-        "description": "Create a new user account with email and password.",
+        "description": "Create a new user account with email and password. Requires explicit consent to the Privacy Policy and Disclaimer per POPIA/GDPR.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email", "password"],
+                "required": ["email", "password", "consent_given"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -79,6 +102,11 @@
                     "format": "password",
                     "minLength": 6,
                     "example": "password123"
+                  },
+                  "consent_given": {
+                    "type": "boolean",
+                    "description": "User must agree to the Privacy Policy and Disclaimer: 'I have read and agree to the SafeScan Privacy Policy and Disclaimer. I understand that my data (name and email) will be used for account creation and service delivery, and that SafeScan is for informational purposes only.'",
+                    "example": true
                   }
                 }
               }
@@ -99,6 +127,8 @@
                       "properties": {
                         "id": { "type": "integer" },
                         "email": { "type": "string" },
+                        "consent_given": { "type": "boolean" },
+                        "consent_timestamp": { "type": "string" },
                         "createdAt": { "type": "string" }
                       }
                     }
@@ -108,7 +138,7 @@
             }
           },
           "400": {
-            "description": "Validation error",
+            "description": "Validation error or consent not given",
             "content": {
               "application/json": {
                 "schema": {
@@ -317,6 +347,15 @@
           "status": { "type": "string", "example": "ok" },
           "service": { "type": "string", "example": "safescan-backend" },
           "timestamp": { "type": "string", "example": "2024-01-15T10:30:00.000Z" }
+        }
+      },
+      "PrivacyResponse": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "example": "SafeScan Privacy Policy" },
+          "effective_date": { "type": "string", "example": "TBD" },
+          "privacy_notice": { "type": "string" },
+          "disclaimer": { "type": "string" }
         }
       },
       "AnalyzeRequest": {

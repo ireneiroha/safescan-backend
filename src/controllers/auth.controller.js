@@ -12,7 +12,14 @@ const getJwtSecret = () => {
 
 exports.register = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, consent_given } = req.body;
+
+    // Validate consent is given (POPIA/GDPR requirement)
+    if (consent_given !== true) {
+      return res.status(400).json({ 
+        error: 'You must agree to the SafeScan Privacy Policy and Disclaimer.' 
+      });
+    }
 
     // Validate email
     if (!email) {
@@ -57,12 +64,12 @@ exports.register = async (req, res) => {
       return res.status(500).json({ error: 'Failed to process registration' });
     }
 
-    // Insert new user
+    // Insert new user with consent (POPIA/GDPR compliance)
     let newUser;
     try {
       newUser = await db.query(
-        'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email, created_at',
-        [email, hashedPassword]
+        'INSERT INTO users (email, password, consent_given, consent_timestamp) VALUES ($1, $2, $3, NOW()) RETURNING id, email, consent_given, consent_timestamp, created_at',
+        [email, hashedPassword, true]
       );
     } catch (dbError) {
       console.error('Database insert error:', dbError.message);
@@ -76,6 +83,8 @@ exports.register = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        consent_given: user.consent_given,
+        consent_timestamp: user.consent_timestamp,
         createdAt: user.created_at
       }
     });
