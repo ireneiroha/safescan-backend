@@ -207,3 +207,85 @@ docker stop [container_name]  # Stop the one using 5432
 
 **API Base URL:** `http://localhost:5000/api`
 **API Docs:** `http://localhost:5000/api/docs`
+
+---
+
+## Part E: Deploy to Render (Production)
+
+### Step 1: Create a PostgreSQL Database on Render
+1. Go to [Render Dashboard](https://dashboard.render.com)
+2. Click "New +" → "PostgreSQL"
+3. Configure:
+   - **Name:** `safescan-db`
+   - **Database:** `safescan`
+   - **User:** `safescan`
+4. Click "Create Database"
+5. Wait for it to provision (green status)
+6. Copy the **Internal Database URL** (format: `postgres://user:password@host:5432/database`)
+
+### Step 2: Set Environment Variables on Render
+1. Go to your Render Web Service (or create new)
+2. Click "Environment" tab
+3. Add the following variables:
+
+| Variable | Value |
+|----------|-------|
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | The PostgreSQL connection string from Step 1 |
+| `JWT_SECRET` | A secure random string (generate at least 32 characters) |
+| `CORS_ORIGIN` | Your frontend URL (e.g., `https://your-frontend.onrender.com`) |
+
+**Note:** You can use either `DATABASE_URL` OR individual `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` variables.
+
+### Step 3: Initialize Database Tables
+After deploying, run the init script via Render's Shell:
+
+1. Go to your Render Web Service
+2. Click "Shell" to open a terminal
+3. Run:
+```
+npm run init-db
+```
+
+**Expected Output:**
+```
+Initializing database...
+Environment: production
+✓ Users table created/verified
+✓ Scans table created/verified
+✓ Scan history table created/verified
+✓ Indexes created/verified
+
+Database initialized successfully!
+```
+
+### Step 4: Deploy
+1. Connect your GitHub repository to Render
+2. Set build command: `npm install`
+3. Set start command: `npm start`
+4. Deploy!
+
+---
+
+## Environment Variables Reference
+
+### For Local Development (.env)
+```
+PORT=5000
+NODE_ENV=development
+PGHOST=localhost
+PGPORT=5432
+PGUSER=postgres
+PGPASSWORD=your_password
+PGDATABASE=safescan
+JWT_SECRET=your_jwt_secret
+CORS_ORIGIN=http://localhost:3000
+```
+
+### For Production (Render)
+```
+NODE_ENV=production
+DATABASE_URL=postgres://user:password@host:5432/database
+JWT_SECRET=your_secure_random_string
+CORS_ORIGIN=https://your-frontend.onrender.com
+```
