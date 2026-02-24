@@ -11,7 +11,7 @@ import Lookup from './pages/Lookup'
 // import PrivateRoute from './utils/PrivateRoute'
 import History from './pages/History'
 import Results from './pages/Results'
-import Profile from './pages/Profile'
+import Settings from './pages/Settings'
 import ScanLanding from './pages/ScanLanding'
 import Landing from './pages/Landing'
 
@@ -41,10 +41,10 @@ function AppLayout() {
           <Route path='/scan-result/:id' element={<Results />} />
           {/* <Route path="/settings" element={
             <PrivateRoute>
-              <Profile />
+              <Settings />
             </PrivateRoute>
           } /> */}
-          <Route path='/settings' element={<Profile />} />
+          <Route path='/settings' element={<Settings />} />
         </Routes>
       </main>
     </div>
