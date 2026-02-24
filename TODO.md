@@ -16,3 +16,26 @@
 2. **src/server.js**:
    - Load dotenv only when NODE_ENV !== 'production'
    - Keep PORT = process.env.PORT || 5000
+
+---
+
+## Task: Add User Registration Feature
+
+- [x] Update src/controllers/auth.controller.js with register function
+- [x] Add Swagger documentation for /api/auth/register
+- [x] Login functionality unchanged
+
+## Registration Feature Changes:
+1. **src/controllers/auth.controller.js**:
+   - Email validation (required, format check)
+   - Password validation (required, min 6 characters)
+   - Check if email already exists
+   - Hash password using bcrypt
+   - Insert user into database
+   - Return 201 with user info (excluding password)
+   - Proper error logging
+
+2. **src/docs/openapi.json**:
+   - Added /api/auth/register endpoint documentation
+   - Request body: email + password
+   - Responses: 201 success, 400 validation error, 409 conflict

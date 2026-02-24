@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const db = require('../db');
 
 // JWT Secret validation - defensive check
@@ -10,7 +11,79 @@ const getJwtSecret = () => {
 };
 
 exports.register = async (req, res) => {
-  res.json({ message: 'Use /login to authenticate with email only' });
+  try {
+    const { email, password } = req.body;
+
+    // Validate email
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Validate password
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Check if email already exists
+    let existingUser;
+    try {
+      existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    } catch (dbError) {
+      console.error('Database query error:', dbError.message);
+      console.error('Error code:', dbError.code);
+      return res.status(503).json({ error: 'Database connection failed' });
+    }
+
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    // Hash password
+    let hashedPassword;
+    try {
+      hashedPassword = await bcrypt.hash(password, 10);
+    } catch (hashError) {
+      console.error('Password hashing error:', hashError.message);
+      return res.status(500).json({ error: 'Failed to process registration' });
+    }
+
+    // Insert new user
+    let newUser;
+    try {
+      newUser = await db.query(
+        'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email, created_at',
+        [email, hashedPassword]
+      );
+    } catch (dbError) {
+      console.error('Database insert error:', dbError.message);
+      console.error('Error code:', dbError.code);
+      return res.status(503).json({ error: 'Database connection failed' });
+    }
+
+    const user = newUser.rows[0];
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        createdAt: user.created_at
+      }
+    });
+  } catch (e) {
+    console.error('Unexpected registration error:', e.message);
+    console.error('Stack:', e.stack);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
 exports.login = async (req, res) => {
