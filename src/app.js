@@ -13,7 +13,7 @@ const safeLogger = require('./utils/safeLogger');
 const app = express();
 
 /**
- * 0) Health check route at root (keep it first)
+ * Health check route at root (keep it first)
  * Render health checks will hit "/" by default sometimes.
  */
 app.get('/', (req, res) => {
@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
 });
 
 /**
- * 1) Handle missing env vars without crashing
+ * Handle missing env vars without crashing
  * - In production, you SHOULD set these in Render env vars.
  * - In development, we provide safe defaults so the server stays up.
  */
@@ -49,7 +49,7 @@ app.use(
 );
 
 /**
- * 2) CORS (credentials-safe)
+ * CORS (credentials-safe)
  * - If CORS_ORIGIN is set, allow only that origin.
  * - If not set:
  *    - in development: reflect the request origin (works with credentials)

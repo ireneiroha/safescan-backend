@@ -3,6 +3,7 @@
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
+  password TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
@@ -33,3 +34,7 @@ CREATE TABLE IF NOT EXISTS scan_ingredients (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ingredients_normalized ON ingredients(normalized_name);
+
+
+-- Ensure required columns exist for evolving schema
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS password TEXT;
