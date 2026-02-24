@@ -43,7 +43,7 @@ export default function SignIn() {
                 // login(data.user, data.token)
                 await new Promise((res) => setTimeout(res, 2000)); // remove once I have an API
 
-                navigate("/home");
+                navigate("/");
                 // eslint-disable-next-line no-unused-vars
             } catch (err) {
                 setLoading(false);
