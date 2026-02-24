@@ -1,5 +1,12 @@
-require('dotenv').config();
-console.log('Environment variables loaded:', { JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'not set', CORS_ORIGIN: process.env.CORS_ORIGIN ? 'set' : 'not set' });
+// Load dotenv only in development (not in production on Render)
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+console.log('Environment variables loaded:', { 
+  JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'not set', 
+  CORS_ORIGIN: process.env.CORS_ORIGIN ? 'set' : 'not set',
+  NODE_ENV: process.env.NODE_ENV || 'development'
+});
 
 const app = require('./app');
 const db = require('./db');
