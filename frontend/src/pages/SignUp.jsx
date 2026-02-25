@@ -5,6 +5,7 @@ import InputField from "../components/ui/InputField";
 import { validateSignup } from "../utils/validate";
 import Button from "../components/ui/Button";
 import SocialAuth from "../components/ui/SocialAuth";
+import { useAuth } from "../context/AuthContext";
 
 export default function SignUp() {
     const [values, setValues] = useState({
@@ -17,6 +18,7 @@ export default function SignUp() {
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     function handleChange(e) {
         const { name, value } = e.target;
@@ -33,17 +35,34 @@ export default function SignUp() {
         if (Object.keys(errs).length === 0) {
             setLoading(true);
             try {
-                // const res = await fetch('/api/auth/register', {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify(values)
-                // })
-                // const data = await res.json()
-                // login(data.user, data.token)
-                await new Promise((res) => setTimeout(res, 2000));
-                navigate("/scan-home");
-                // eslint-disable-next-line no-unused-vars
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: values.email,
+                        password: values.password,
+                        consent_given: true
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+
+                // register returns no token so immediately login
+                const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: values.email,
+                        password: values.password,
+                    })
+                });
+                const loginData = await loginRes.json();
+                if (!loginRes.ok) throw new Error(loginData.error);
+
+                login({ email: values.email, name: values.fullName }, loginData.token);
+                navigate('/scan-home');
             } catch (err) {
+                setErrors({ general: err.message });
                 setLoading(false);
             }
         }
@@ -62,7 +81,7 @@ export default function SignUp() {
                 </div>
 
                 <div className="flex flex-1 items-center justify-center px-6 md:px-16 overflow-y-auto py-8">
-                    <div className="w-full max-w-lg">
+                    <div className="w-full max-w-md">
                         <AuthTitle
                             title="Create Account"
                             description={<>Please Sign up to continue<br />your journey</>}
@@ -119,6 +138,10 @@ export default function SignUp() {
                                 </label>
                             </div>
 
+                            {errors.general && (
+                                <p className="text-sm text-danger text-center -mt-2">{errors.general}</p>
+                            )}
+
                             <div className="flex flex-col gap-4">
                                 <Button
                                     text="Sign Up"
@@ -130,7 +153,7 @@ export default function SignUp() {
                                 <Button
                                     text="Continue as a Guest"
                                     variant="outline"
-                                    onClick={() => navigate("/")}
+                                    onClick={() => navigate("/scan-home")}
                                     disabled={loading}
                                 />
                             </div>
@@ -146,5 +169,5 @@ export default function SignUp() {
 
             </div>
         </div>
-    )
+    );
 }
