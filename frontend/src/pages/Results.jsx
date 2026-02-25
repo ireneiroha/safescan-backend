@@ -73,12 +73,10 @@ export default function Results() {
     const result = MOCK_RESULT
     const risk = RISK_CONFIG[result.safety]
 
-    // Count per safety level
     const safeCount = result.ingredients.filter(i => i.safety === 'safe').length
     const riskyCount = result.ingredients.filter(i => i.safety === 'risky').length
     const restrictedCount = result.ingredients.filter(i => i.safety === 'restricted').length
 
-    // Sort in restricted → risky → safe
     const SAFETY_ORDER = { restricted: 0, risky: 1, safe: 2 }
     const sortedIngredients = [...result.ingredients].sort(
         (a, b) => SAFETY_ORDER[a.safety] - SAFETY_ORDER[b.safety]
@@ -86,7 +84,6 @@ export default function Results() {
 
     // const [result, setResult] = useState(null)
     // const [loading, setLoading] = useState(true)
-    //
     // useEffect(() => {
     //   const fetchResult = async () => {
     //     try {
@@ -96,8 +93,6 @@ export default function Results() {
     //       })
     //       const data = await res.json()
     //       setResult(data)
-    //       // backend should return:
-    //       // { id, productName, productSubtitle, productImage, safety, category, scannedAt }
     //     } catch (err) {
     //       console.error('Failed to fetch scan result:', err)
     //     } finally {
@@ -108,10 +103,9 @@ export default function Results() {
     // }, [id])
 
     return (
-        <div className="mx-auto max-w-md px-4 py-6">
+        <div className="mx-auto max-w-md md:max-w-[1440px] px-4 py-6 md:px-10 md:py-8">
 
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-5 md:mb-8">
                 <button
                     type="button"
                     onClick={() => navigate(-1)}
@@ -123,109 +117,85 @@ export default function Results() {
                     Back
                 </button>
                 <h1 className="text-base font-bold text-primary">Scan Results</h1>
-                <div className="w-12" /> {/* spacer to center title */}
+                <div className="w-12" />
             </div>
 
-            {/* Risk banner */}
-            <div className={`rounded-2xl p-4 mt-4 mb-5 ${risk.bannerClass}`}>
-                {/* Top row */}
-                <div className={`flex items-center gap-2 mb-2 ${risk.iconClass}`}>
-                    {risk.icon}
-                    <p className={`font-bold text-base ${risk.labelClass}`}>{risk.label}</p>
-                </div>
+            <div className="md:flex md:justify-center">
+                <div className="flex flex-col md:flex-row md:gap-16 md:items-start">
 
-                {/* Description */}
-                <p className="text-sm text-text-body mb-3">{risk.description}</p>
-
-                {/* Category row */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs text-text-secondary">
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                        </svg>
-                        Category detected:
-                        <span className="text-text-title font-medium capitalize">{result.category}</span>
+                    <div className="md:w-[380px] md:shrink-0 md:flex md:flex-col">
+                        <div className="relative rounded-2xl overflow-hidden h-[400px] md:flex-1 mb-4">
+                            <img
+                                src={result.productImage}
+                                alt={result.productName}
+                                className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 p-4">
+                                <p className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-1">
+                                    {result.productSubtitle}
+                                </p>
+                                <h2 className="text-xl font-bold text-white leading-tight">
+                                    {result.productName}
+                                </h2>
+                            </div>
+                        </div>
+                        <Button
+                            text="Scan Another"
+                            variant="primary"
+                            onClick={() => navigate('/scan-home')}
+                        />
                     </div>
 
-                    {/* Safety badge */}
-                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full border ${risk.badgeClass}`}>
-                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        {risk.badge}
-                    </span>
-                </div>
+                    <div className="flex-1 mt-5 md:max-w-[520px] md:mt-0">
 
-                {/* Change category */}
-                <button
-                    type="button"
-                    className="mt-3 text-sm font-semibold text-primary hover:underline"
-                >
-                    Change category
-                </button>
-            </div>
+                        <div className={`rounded-2xl p-4 mb-5 ${risk.bannerClass}`}>
+                            <div className={`flex items-center gap-2 mb-2 ${risk.iconClass}`}>
+                                {risk.icon}
+                                <p className={`font-bold text-base ${risk.labelClass}`}>{risk.label}</p>
+                            </div>
+                            <p className="text-sm text-text-body mb-3">{risk.description}</p>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs text-text-secondary">
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                    </svg>
+                                    Category detected:
+                                    <span className="text-text-title font-medium capitalize">{result.category}</span>
+                                </div>
+                                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full border ${risk.badgeClass}`}>
+                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    {risk.badge}
+                                </span>
+                            </div>
+                            <button type="button" className="mt-3 text-sm font-semibold text-primary hover:underline">
+                                Change category
+                            </button>
+                        </div>
 
-            {/* Product image card */}
-            <div className="relative rounded-2xl overflow-hidden h-[400px]">
-                <img
-                    src={result.productImage}
-                    alt={result.productName}
-                    className="w-full h-full object-cover"
-                />
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                {/* Product info */}
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <p className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-1">
-                        {result.productSubtitle}
-                    </p>
-                    <h2 className="text-xl font-bold text-white leading-tight">
-                        {result.productName}
-                    </h2>
-                </div>
-            </div>
+                        <div className="mb-4">
+                            <p className="text-base font-bold text-text-title mb-3">Summary</p>
+                            <div className="flex gap-3">
+                                <SummaryBadge count={safeCount} label="Safe" dotClass="bg-[#43B75D]" badgeClass="bg-[#ECF8EF] text-[#43B75D] border-[#43B75D]" />
+                                <SummaryBadge count={riskyCount} label="Risky" dotClass="bg-risky" badgeClass="bg-[#FFF7E6] text-risky border-risky" />
+                                <SummaryBadge count={restrictedCount} label="Restricted" dotClass="bg-danger" badgeClass="bg-[#FDECEC] text-danger border-danger" />
+                            </div>
+                        </div>
 
-            {/* Summary */}
-            <div className="my-4">
-                <p className="text-base font-bold text-text-title mb-3">Summary</p>
-                <div className="flex justify-evenly">
-                    <SummaryBadge
-                        count={safeCount}
-                        label="Safe"
-                        dotClass="bg-[#43B75D]"
-                        badgeClass="bg-[#ECF8EF] text-[#43B75D] border-[#43B75D]"
-                    />
-                    <SummaryBadge
-                        count={riskyCount}
-                        label="Risky"
-                        dotClass="bg-risky"
-                        badgeClass="bg-[#FFF7E6] text-risky border-risky"
-                    />
-                    <SummaryBadge
-                        count={restrictedCount}
-                        label="Restricted"
-                        dotClass="bg-danger"
-                        badgeClass="bg-[#FDECEC] text-danger border-danger"
-                    />
+                        <div className="mb-6">
+                            <p className="text-base font-bold text-text-title mb-3">Ingredient Analysis</p>
+                            <div className="flex flex-col gap-3">
+                                {sortedIngredients.map((ingredient) => (
+                                    <IngredientResultCard key={ingredient.id} {...ingredient} />
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
-
-            {/* Ingredient analysis */}
-            <div className="mb-6">
-                <p className="text-base font-bold text-text-title mb-3">Ingredient Analysis</p>
-                <div className="flex flex-col gap-3">
-                    {sortedIngredients.map((ingredient) => (
-                        <IngredientResultCard key={ingredient.id} {...ingredient} />
-                    ))}
-                </div>
-            </div>
-
-            {/* Scan another button */}
-            <Button
-                text="Scan Another"
-                variant="primary"
-                onClick={() => navigate('/scan-home')}
-            />
         </div>
-    );
+    )
 }

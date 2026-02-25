@@ -42,21 +42,12 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
-  {
-    label: 'Logout',
-    path: '/login',
-    icon: (
-      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-      </svg>
-    ),
-  },
 ]
 
 function GuestAvatar() {
   return (
-    <div className="h-11 w-11 rounded-full bg-primary flex items-center justify-center shrink-0">
-      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center shrink-0">
+      <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
       </svg>
     </div>
@@ -76,7 +67,6 @@ function Toast({ message, visible }) {
   )
 }
 
-
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [toast, setToast] = useState({ visible: false, message: '' })
@@ -95,49 +85,85 @@ export default function Navbar() {
       setTimeout(() => { setOpen(false); navigate('/register') }, 2000)
     } else {
       setOpen(false)
-      navigate('/profile')
+      navigate('/settings')
     }
   }
 
-  const handleNavClick = (item) => {
-    if (item.label === 'Logout') { logout(); setOpen(false); navigate('/'); return }
+  const handleLogout = () => {
+    logout()
     setOpen(false)
+    navigate('/')
   }
 
   return (
     <>
       <Toast message={toast.message} visible={toast.visible} />
 
-      <nav className="sticky top-0 z-30 bg-bg-primary shadow-sm mx-auto flex max-w-2xl items-center justify-between p-3 md:px-6 md:py-5">
-        <div className="flex items-center">
-          <img src={SafeScanLogo} alt="Safe scan logo" />
+      <nav className="sticky top-0 z-30 bg-bg-primary shadow-sm">
+        <div className="mx-auto max-w-[1440px] flex items-center justify-between px-4 py-3 md:px-10 md:py-4">
+
+          {/* Logo */}
+          <Link to="/">
+            <img src={SafeScanLogo} alt="SafeScan logo" className="h-10" />
+          </Link>
+
+          <div className="hidden md:flex items-center gap-10">
+            {NAV_ITEMS.map((item) => {
+              const isActive = pathname === item.path
+              return (
+                <Link
+                  key={item.label}
+                  to={item.path}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-teal-50 text-primary font-semibold'
+                      : 'text-text-body hover:text-primary hover:bg-teal-50/50'
+                  }`}
+                >
+                  <span className={isActive ? 'text-primary' : 'text-text-secondary'}>
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
+              )
+            })}
+
+            {/* Divider */}
+            <div className="h-6 w-px bg-gray-200 mx-1" />
+
+            {/* Avatar */}
+            <button
+              type="button"
+              onClick={handleViewProfile}
+              className="ml-1 rounded-full ring-2 ring-transparent hover:ring-primary/30 transition-all"
+            >
+              {user?.avatar
+                ? <img src={user.avatar} alt="User avatar" className="h-9 w-9 rounded-full object-cover" />
+                : <GuestAvatar />
+              }
+            </button>
+          </div>
+
+          {/* ── Mobile hamburger ── */}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="flex md:hidden h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-teal-500/10 hover:text-teal-600"
+            aria-label="Open menu"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-teal-500/10 hover:text-teal-600 md:h-11 md:w-11"
-          aria-label="Open menu"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
       </nav>
 
-      {/* Backdrop */}
       {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50"
-          onClick={() => setOpen(false)}
-        />
+        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setOpen(false)} />
       )}
 
-      {/* Drawer */}
-      <div
-        className={`fixed top-0 right-0 z-50 h-full w-[285px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'
-          }`}
-      >
-        {/* User profile */}
+      <div className={`fixed top-0 right-0 z-50 h-full w-[285px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out md:hidden ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+        {/* User profile header */}
         <div className="flex items-center justify-between px-6 pt-8 pb-6">
           <div className="flex items-center gap-3">
             {user?.avatar
@@ -154,39 +180,50 @@ export default function Navbar() {
               </button>
             </div>
           </div>
-          <button type="button" onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors" aria-label="Close menu">
+          <button type="button" onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* Nav links */}
-        <nav className="flex-1 px-4 space-y-1">
+        {/* Drawer nav links */}
+        <div className="flex-1 px-4 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.path
             return (
               <Link
                 key={item.label}
                 to={item.path}
-                onClick={() => handleNavClick(item)}
-                className={`flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-medium transition-colors ${isActive
-                  ? 'bg-bg-secondary text-primary'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                onClick={() => setOpen(false)}
+                className={`flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-medium transition-colors ${
+                  isActive ? 'bg-bg-secondary text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
               >
-                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isActive ? 'bg-[#D1DEDB] text-primary' : 'bg-[#EEF8F6] text-text-secondary'
-                  }`}>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                  isActive ? 'bg-[#D1DEDB] text-primary' : 'bg-[#EEF8F6] text-text-secondary'
+                }`}>
                   {item.icon}
                 </span>
                 {item.label}
-                {isActive && (
-                  <span className="ml-auto h-2 w-2 rounded-full bg-primary" />
-                )}
+                {isActive && <span className="ml-auto h-2 w-2 rounded-full bg-primary" />}
               </Link>
             )
           })}
-        </nav>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-danger transition-colors"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EEF8F6] text-text-secondary">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </span>
+            Logout
+          </button>
+        </div>
 
         {/* Upgrade banner */}
         <div className="mx-4 mb-8 rounded-[16px] bg-primary px-5 py-4 text-white text-center">
