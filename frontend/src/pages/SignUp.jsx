@@ -65,7 +65,7 @@ export default function SignUp() {
                     name: values.fullName,
                     createdAt: data.user.createdAt
                 }, loginData.token);
-                navigate('/scan-home');
+                navigate('/');
             } catch (err) {
                 setErrors({ general: err.message });
                 setLoading(false);
@@ -150,7 +150,7 @@ export default function SignUp() {
                                         >
                                             SafeScan Privacy Policy and Disclaimer
                                         </Link>
-                                        . I understand that my data will be used for account creation and service delivery, and that SafeScan is for informational purposes only.
+                                        {/* . I understand that my data will be used for account creation and service delivery, and that SafeScan is for informational purposes only. */}
                                     </label>
                                 </div>
                                 {errors.consent && (
@@ -173,7 +173,7 @@ export default function SignUp() {
                                 <Button
                                     text="Continue as a Guest"
                                     variant="outline"
-                                    onClick={() => navigate("/scan-home")}
+                                    onClick={() => navigate("/")}
                                     disabled={loading}
                                 />
                             </div>
