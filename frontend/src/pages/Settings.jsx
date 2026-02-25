@@ -9,6 +9,19 @@ import LogoutIcon from '../assets/icons/logout.svg?react'
 import NotificationsModal from '../modals/NotificationsModal'
 import SubscriptionModal from '../modals/SubscriptionModal'
 
+function getInitials(name) {
+    if (!name) return 'U'
+    return name.trim().split(' ').map(n => n[0].toUpperCase()).slice(0, 2).join('')
+}
+
+function InitialsAvatar({ name }) {
+    return (
+        <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center border-2 border-white shadow-md shrink-0">
+            <span className="text-2xl font-bold text-white">{getInitials(name)}</span>
+        </div>
+    )
+}
+
 export default function Settings() {
     const navigate = useNavigate()
     const { user, logout } = useAuth()
@@ -18,32 +31,12 @@ export default function Settings() {
         name: user?.name ?? 'User',
         avatar: user?.avatar ?? null,
         plan: user?.plan ?? 'SafeScan Member',
-        memberSince: user?.memberSince ?? '—',
+        memberSince: user?.createdAt
+            ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            : '—',
         subscription: user?.subscription ?? 'Free Plan',
         version: 'v1.0.4',
     }
-
-    // useEffect(() => {
-    //   const fetchProfile = async () => {
-    //     try {
-    //       const token = localStorage.getItem('token')
-    //       const res = await fetch('/api/user/profile', {
-    //         headers: { Authorization: `Bearer ${token}` }
-    //       })
-    //       const data = await res.json()
-    //       login({
-    //         name: data.name,
-    //         avatar: data.avatar,
-    //         plan: data.plan,
-    //         memberSince: data.memberSince,
-    //         subscription: data.subscription,
-    //       }, localStorage.getItem('token'))
-    //     } catch (err) {
-    //       console.error('Failed to fetch profile:', err)
-    //     }
-    //   }
-    //   fetchProfile()
-    // }, [])
 
     const handleLogout = () => {
         logout()
@@ -71,9 +64,8 @@ export default function Settings() {
 
                 <div className="md:max-w-2xl md:mx-auto">
 
-                    <div className="bg-[#E7F0EF] rounded-3xl p-6 mb-6
-                        flex flex-col items-center
-                        md:flex-row md:items-center md:gap-5">
+                    {/* Profile card */}
+                    <div className="bg-[#E7F0EF] rounded-3xl p-6 mb-6 flex flex-col items-center md:flex-row md:items-center md:gap-5">
 
                         <div className="relative mb-3 md:mb-0 shrink-0">
                             {profile.avatar ? (
@@ -83,16 +75,11 @@ export default function Settings() {
                                     className="h-20 w-20 rounded-full object-cover border-2 border-white shadow-md"
                                 />
                             ) : (
-                                <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center border-2 border-white shadow-md">
-                                    <svg className="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                </div>
+                                <InitialsAvatar name={profile.name} />
                             )}
                             <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-[#43B75D] border-2 border-white" />
                         </div>
 
-                        {/* Name + plan */}
                         <div className="flex-1 text-center md:text-left mb-3 md:mb-0">
                             <h2 className="text-2xl font-bold text-text-title">{profile.name}</h2>
                             <p className="text-sm text-text-secondary mt-0.5">
@@ -100,7 +87,6 @@ export default function Settings() {
                             </p>
                         </div>
 
-                        {/* Edit profile button */}
                         <button
                             type="button"
                             onClick={() => navigate('/edit-profile')}
@@ -114,13 +100,13 @@ export default function Settings() {
                     <div>
                         <h3 className="text-lg font-bold text-text-title mb-4 md:mb-5">Preferences</h3>
 
-                        <div className="border-[0.3px] border-border rounded-3xl px-4 py-2 md:py-4 md:border-0 md:rounded-none">                            <PreferenceRow
-                            label="Notifications"
-                            value="Managed"
-                            icon={<NotificationIcon />}
-                            onClick={() => setActiveModal('notifications')}
-                        />
-
+                        <div className="border-[0.3px] border-border rounded-3xl px-4 py-2 md:py-4 md:border-0 md:rounded-none">
+                            <PreferenceRow
+                                label="Notifications"
+                                value="Managed"
+                                icon={<NotificationIcon />}
+                                onClick={() => setActiveModal('notifications')}
+                            />
                             <PreferenceRow
                                 label="Subscription"
                                 value={profile.subscription}
@@ -128,15 +114,12 @@ export default function Settings() {
                                 icon={<SubscriptionIcon />}
                                 onClick={() => setActiveModal('subscription')}
                             />
-
                             <PreferenceRow
                                 label="About SafeScan"
                                 value={profile.version}
                                 icon={<InfoIcon />}
                                 onClick={() => navigate('/about')}
                             />
-
-                            {/* Logout */}
                             <button
                                 type="button"
                                 onClick={handleLogout}

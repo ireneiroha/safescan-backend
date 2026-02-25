@@ -14,6 +14,7 @@ import Results from './pages/Results'
 import Settings from './pages/Settings'
 import ScanLanding from './pages/ScanLanding'
 import Landing from './pages/Landing'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 
 const AUTH_PAGES = ['/register', '/login', '/scan-result']
 
@@ -45,6 +46,7 @@ function AppLayout() {
             </PrivateRoute>
           } /> */}
           <Route path='/settings' element={<Settings />} />
+          <Route path='/privacy' element={<PrivacyPolicy />} />
         </Routes>
       </main>
     </div>

@@ -6,15 +6,15 @@ import Button from "../components/ui/Button";
 import { validateLogin } from "../utils/validate";
 import SocialAuth from "../components/ui/SocialAuth";
 import SignInImg from '../assets/images/signIn.png'
-// import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function SignIn() {
     const [values, setValues] = useState({ email: "", password: "" });
     const [errors, setErrors] = useState({});
     const [submitted, setSubmitted] = useState(false);
-    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    // const { login } = useAuth()
+    const navigate = useNavigate();
+    const { login } = useAuth();
 
     function handleChange(e) {
         const { name, value } = e.target;
@@ -31,17 +31,29 @@ export default function SignIn() {
         if (Object.keys(errs).length === 0) {
             setLoading(true);
             try {
-                // const res = await fetch('/api/auth/login', {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify(values)
-                // })
-                // const data = await res.json()
-                // login(data.user, data.token)
-                await new Promise((res) => setTimeout(res, 2000));
-                navigate("/scan-home");
-                // eslint-disable-next-line no-unused-vars
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: values.email,
+                        // password: values.password,
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+
+                // read name and createdAt saved during registration
+                const savedName = localStorage.getItem('userName')
+                const savedCreatedAt = localStorage.getItem('userCreatedAt')
+
+                login({
+                    email: values.email,
+                    name: savedName ?? values.email.split('@')[0],
+                    createdAt: savedCreatedAt ?? new Date().toISOString()
+                }, data.token);
+                navigate('/');
             } catch (err) {
+                setErrors({ general: err.message });
                 setLoading(false);
             }
         }
@@ -60,7 +72,7 @@ export default function SignIn() {
                 </div>
 
                 <div className="flex flex-1 items-center justify-center px-6 md:px-16 overflow-y-auto">
-                    <div className="w-full max-w-lg">
+                    <div className="w-full max-w-md">
                         <AuthTitle
                             title="Welcome Back!"
                             description="Sign in to start scanning safely"
@@ -90,6 +102,11 @@ export default function SignIn() {
                                     Forgot password?
                                 </a>
                             </div>
+
+                            {errors.general && (
+                                <p className="text-sm text-danger text-center -mt-2">{errors.general}</p>
+                            )}
+
                             <Button
                                 text="Sign In"
                                 type="submit"
@@ -110,5 +127,5 @@ export default function SignIn() {
 
             </div>
         </div>
-    )
+    );
 }
