@@ -17,17 +17,17 @@ export default function SocialAuth({ auth, alternateLink, redirectTo }) {
             </div>
 
             <div className="flex items-center gap-4">
-                <div className="p-3 border border-deep-teal rounded-lg cursor-pointer hover:bg-bg-secondary transition">
+                <a href="https://appleid.apple.com/sign-in" target="_blank" rel="noreferrer" className="p-3 border border-deep-teal rounded-lg cursor-pointer hover:bg-bg-secondary transition">
                     <Apple className="w-5 h-5" />
-                </div>
+                </a>
 
-                <div className="p-3 border border-deep-teal rounded-lg cursor-pointer hover:bg-bg-secondary transition">
+                <a href="https://accounts.google.com" target="_blank" rel="noreferrer" className="p-3 border border-deep-teal rounded-lg cursor-pointer hover:bg-bg-secondary transition">
                     <Google className="w-5 h-5" />
-                </div>
+                </a>
 
-                <div className="p-3 border border-deep-teal rounded-lg cursor-pointer hover:bg-bg-secondary transition">
+                <a href="https://www.facebook.com/login" target="_blank" rel="noreferrer" className="p-3 border border-deep-teal rounded-lg cursor-pointer hover:bg-bg-secondary transition">
                     <Facebook className="w-5 h-5" />
-                </div>
+                </a>
             </div>
 
             <div>
