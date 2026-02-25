@@ -5,7 +5,7 @@ export default function Analyzing() {
     const navigate = useNavigate()
     const location = useLocation()
     const ingredients = location.state?.ingredients ?? ''
-    // const imageData = location.state?.imageData ?? null
+    const imageData = location.state?.imageData ?? null
 
     useEffect(() => {
         const analyze = async () => {
@@ -24,7 +24,7 @@ export default function Analyzing() {
                     return
                 }
                 const data = await res.json()
-                navigate('/scan-result/result', { state: { result: data }, replace: true })
+                navigate('/scan-result/result', { state: { result: data, imageData }, replace: true })
             } catch (err) {
                 console.error('Analysis failed:', err)
                 navigate('/scan-home')

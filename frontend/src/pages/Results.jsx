@@ -73,18 +73,20 @@ export default function Results() {
     const location = useLocation()
 
     const apiResult = location.state?.result
+    const imageData = location.state?.imageData ?? null
     let result
     if (apiResult) {
         const overallSafety = apiResult.summary?.restricted > 0 ? 'restricted'
             : apiResult.summary?.risky > 0 ? 'risky' : 'safe'
+        const scannedAt = new Date()
         result = {
             id: 1,
-            productName: 'Scanned Product',
-            productSubtitle: 'Ingredient Analysis',
-            productImage: ScanImg,
+            productName: `Scan — ${scannedAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`,
+            productSubtitle: `${apiResult.summary?.total ?? 0} ingredients detected`,
+            productImage: imageData || ScanImg,
             safety: overallSafety,
             category: 'skincare',
-            scannedAt: new Date().toISOString(),
+            scannedAt: scannedAt.toISOString(),
             ingredients: (apiResult.results || []).map((r, i) => ({
                 id: i + 1,
                 name: r.ingredient,
