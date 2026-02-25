@@ -51,6 +51,7 @@ app.use(
 // Allowed origins for CORS
 const allowedOrigins = [
   'http://localhost:5173',
+  'https://safescan-backend-1.onrender.com',
   'https://my-production-frontend.com',
 ];
 
