@@ -15,6 +15,8 @@ import Settings from './pages/Settings'
 import ScanLanding from './pages/ScanLanding'
 import Landing from './pages/Landing'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import ConfirmIngredients from './components/camera/ConfirmIngredients'
+import Analyzing from './components/camera/Analyzing'
 
 const AUTH_PAGES = ['/register', '/login', '/scan-result']
 
@@ -47,6 +49,8 @@ function AppLayout() {
           } /> */}
           <Route path='/settings' element={<Settings />} />
           <Route path='/privacy' element={<PrivacyPolicy />} />
+          <Route path='/confirm' element={<ConfirmIngredients />} />
+          <Route path='/analyzing' element={<Analyzing />} />
         </Routes>
       </main>
     </div>

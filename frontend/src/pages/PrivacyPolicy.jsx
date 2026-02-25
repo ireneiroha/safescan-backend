@@ -95,7 +95,7 @@ export default function PrivacyPolicy() {
                         } else {
                             // check if user is logged in
                             const token = localStorage.getItem('token')
-                            navigate(token ? '/scan-home' : '/login')
+                            navigate(token ? '/' : '/login')
                         }
                     }}
                     className="flex items-center gap-1.5 text-sm font-medium text-text-title hover:text-primary transition-colors mb-8"

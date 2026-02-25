@@ -36,7 +36,7 @@ export default function SignIn() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         email: values.email,
-                        // password: values.password,
+                        password: values.password,
                     })
                 });
                 const data = await res.json();

@@ -15,7 +15,7 @@ export default function Landing() {
 
     return (
         <div className="flex flex-col min-h-screen">
-            <main className="flex-1 px-4 pt-5 pb-6 max-w-md mx-auto w-full lg:max-w-6xl lg:px-10 lg:pt-8 lg:pb-10">
+            <main className="flex-1 px-4 pt-5 pb-6 max-w-md mx-auto w-full lg:max-w-7xl lg:px-10 lg:pb-10">
 
                 <div className="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center lg:mb-24 lg:min-h-[calc(100vh-96px)] pt-8">
                     <Hero />
