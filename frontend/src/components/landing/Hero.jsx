@@ -27,6 +27,8 @@ export default function Hero() {
                     variant="primary"
                     onClick={() => navigate('/register')}
                     showArrow
+                    fullWidth={false}
+                    className="px-8"
                 />
                 <div className="flex items-center gap-3">
                     <div className="flex -space-x-2">
@@ -35,7 +37,7 @@ export default function Hero() {
                                 className="h-8 w-8 rounded-full border-2 border-white object-cover lg:h-10 lg:w-10" />
                         ))}
                     </div>
-                    <div className="flex flex-col items-center gap">
+                    <div className="flex flex-col items-start gap-0.5">
                         <StarsIcon />
                         <span className="text-xs font-bold text-text-secondary lg:text-sm">4.9/5 RATING</span>
                     </div>
