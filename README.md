@@ -139,6 +139,21 @@ Runs on `http://localhost:5000` by default.
 
 ---
 
-## License
+## About                                                                                                                                                                                                                                                                                                                                                                                                  
+SafeScan was built as a collaboration project during the **Women Techsters Fellowship** by [Tech4Dev](https://tech4dev.com). The fellowship supports women in technology across Africa, and this project was developed as part of that program.                                                                                                                                                              
+                                                                                                                                                                                                              
+## Contributions                                                                                                                                                                                                                                                                                                                                                                                                   
+  Contributions, ideas, and additions are welcome!                                                                                                                                                          
+                                                                                                                                                                                                            
+If you'd like to improve SafeScan — whether it's a new feature, a bug fix, better UI, or expanded ingredient data — feel free to get involved:                                                            
+                                                                                                                                                                                                      
+ 1. Fork the repository                                                                                                                                                                                    
+ 2. Create a new branch (`git checkout -b feature/your-feature-name`)                                                                                                                                      
+ 3. Commit your changes (`git commit -m 'Add your feature'`)                                                                                                                                               
+ 4. Push to your branch (`git push origin feature/your-feature-name`)                                                                                                                                      
+ 5. Open a Pull Request                                                                                                                                                                                                                                                                                                                                                                                     
+  +For major changes, please open an issue first to discuss what you'd like to change.                                                                                                                       
+ ## License                                                                                                                                                                                                
+
 
 
