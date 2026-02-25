@@ -8,6 +8,15 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     react(),
-    svgr()
+    svgr(),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://safescan-backend-1.onrender.com',
+        changeOrigin: true,
+        secure: true,
+      }
+    }
+  }
 })

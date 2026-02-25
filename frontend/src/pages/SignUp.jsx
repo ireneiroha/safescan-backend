@@ -14,6 +14,7 @@ export default function SignUp() {
         password: "",
         confirmPassword: "",
     });
+    const [consent, setConsent] = useState(false);
     const [errors, setErrors] = useState({});
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -31,6 +32,7 @@ export default function SignUp() {
         e.preventDefault();
         setSubmitted(true);
         const errs = validateSignup(values);
+        if (!consent) errs.consent = "You must agree to the Privacy Policy to continue.";
         setErrors(errs);
         if (Object.keys(errs).length === 0) {
             setLoading(true);
@@ -47,19 +49,22 @@ export default function SignUp() {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
 
-                // register returns no token so immediately login
+                localStorage.setItem('userName', values.fullName)
+                localStorage.setItem('userCreatedAt', data.user.createdAt)
+
                 const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: values.email,
-                        password: values.password,
-                    })
+                    body: JSON.stringify({ email: values.email })
                 });
                 const loginData = await loginRes.json();
                 if (!loginRes.ok) throw new Error(loginData.error);
 
-                login({ email: values.email, name: values.fullName }, loginData.token);
+                login({
+                    email: values.email,
+                    name: values.fullName,
+                    createdAt: data.user.createdAt
+                }, loginData.token);
                 navigate('/scan-home');
             } catch (err) {
                 setErrors({ general: err.message });
@@ -69,7 +74,7 @@ export default function SignUp() {
     }
 
     return (
-        <div className="flex h-screen bg-bg-primary overflow-hidden justify-center">
+        <div className="flex min-h-screen bg-bg-primary overflow-hidden justify-center">
             <div className="flex w-full max-w-[1440px] h-full">
 
                 <div className="hidden md:block w-[45%] shrink-0 p-6">
@@ -80,7 +85,7 @@ export default function SignUp() {
                     />
                 </div>
 
-                <div className="flex flex-1 items-center justify-center px-6 md:px-16 overflow-y-auto py-8">
+                <div className="flex flex-1 items-center justify-center px-6 md:px-16 py-8">
                     <div className="w-full max-w-md">
                         <AuthTitle
                             title="Create Account"
@@ -124,18 +129,33 @@ export default function SignUp() {
                                 error={errors.confirmPassword}
                             />
 
-                            <div className="flex items-center">
-                                <input
-                                    id="link-checkbox"
-                                    type="checkbox"
-                                    className="w-4 h-4 border-[1.5px] border-deep-teal rounded-md bg-bg-secondary focus:ring-2 focus:ring-deep-teal cursor-pointer accent-deep-teal"
-                                />
-                                <label htmlFor="link-checkbox" className="select-none ms-2 text-sm font-medium text-text-body">
-                                    Agree with{" "}
-                                    <Link to="/" className="text-deep-teal hover:underline">
-                                        Terms & Conditions
-                                    </Link>
-                                </label>
+                            <div className="flex flex-col gap-1.5">
+                                <div className="flex items-start gap-2.5">
+                                    <input
+                                        id="consent-checkbox"
+                                        type="checkbox"
+                                        checked={consent}
+                                        onChange={(e) => {
+                                            setConsent(e.target.checked)
+                                            if (submitted) setErrors((prev) => ({ ...prev, consent: undefined }))
+                                        }}
+                                        className="mt-0.5 w-4 h-4 shrink-0 border-[1.5px] border-primary rounded cursor-pointer accent-primary"
+                                    />
+                                    <label htmlFor="consent-checkbox" className="text-sm text-text-body leading-relaxed cursor-pointer select-none">
+                                        I have read and agree to the{" "}
+                                        <Link
+                                            to="/privacy"
+                                            target="_blank"
+                                            className="text-primary font-semibold hover:underline"
+                                        >
+                                            SafeScan Privacy Policy and Disclaimer
+                                        </Link>
+                                        . I understand that my data will be used for account creation and service delivery, and that SafeScan is for informational purposes only.
+                                    </label>
+                                </div>
+                                {errors.consent && (
+                                    <p className="text-xs text-danger ml-6">{errors.consent}</p>
+                                )}
                             </div>
 
                             {errors.general && (

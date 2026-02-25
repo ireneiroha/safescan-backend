@@ -44,9 +44,22 @@ const NAV_ITEMS = [
   },
 ]
 
-function GuestAvatar() {
+function getInitials(name) {
+  if (!name) return 'U'
+  return name.trim().split(' ').map(n => n[0].toUpperCase()).slice(0, 2).join('')
+}
+
+function InitialsAvatar({ name, className = "h-9 w-9 text-sm" }) {
   return (
-    <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center shrink-0">
+    <div className={`rounded-full bg-primary flex items-center justify-center text-white font-bold shrink-0 ${className}`}>
+      {getInitials(name)}
+    </div>
+  )
+}
+
+function GuestAvatar({ className = "h-9 w-9" }) {
+  return (
+    <div className={`rounded-full bg-primary flex items-center justify-center shrink-0 ${className}`}>
       <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
       </svg>
@@ -102,11 +115,11 @@ export default function Navbar() {
       <nav className="sticky top-0 z-30 bg-bg-primary shadow-sm">
         <div className="mx-auto max-w-[1440px] flex items-center justify-between px-4 py-3 md:px-10 md:py-4">
 
-          {/* Logo */}
           <Link to="/">
             <img src={SafeScanLogo} alt="SafeScan logo" className="h-10" />
           </Link>
 
+          {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-10">
             {NAV_ITEMS.map((item) => {
               const isActive = pathname === item.path
@@ -128,28 +141,28 @@ export default function Navbar() {
               )
             })}
 
-            {/* Divider */}
-            <div className="h-6 w-px bg-gray-200 mx-1" />
+            <div className="h-6 w-px bg-gray-200" />
 
-            {/* Avatar */}
             <button
               type="button"
               onClick={handleViewProfile}
-              className="ml-1 rounded-full ring-2 ring-transparent hover:ring-primary/30 transition-all"
+              className="rounded-full ring-2 ring-transparent hover:ring-primary/30 transition-all"
             >
-              {user?.avatar
-                ? <img src={user.avatar} alt="User avatar" className="h-9 w-9 rounded-full object-cover" />
-                : <GuestAvatar />
-              }
+              {user?.avatar ? (
+                <img src={user.avatar} alt="avatar" className="h-9 w-9 rounded-full object-cover" />
+              ) : user ? (
+                <InitialsAvatar name={user.name} className="h-9 w-9 text-sm" />
+              ) : (
+                <GuestAvatar className="h-9 w-9" />
+              )}
             </button>
           </div>
 
-          {/* ── Mobile hamburger ── */}
+          {/* Mobile hamburger */}
           <button
             type="button"
             onClick={() => setOpen(true)}
             className="flex md:hidden h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-teal-500/10 hover:text-teal-600"
-            aria-label="Open menu"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -162,14 +175,17 @@ export default function Navbar() {
         <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setOpen(false)} />
       )}
 
+      {/* Mobile drawer */}
       <div className={`fixed top-0 right-0 z-50 h-full w-[285px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out md:hidden ${open ? 'translate-x-0' : 'translate-x-full'}`}>
-        {/* User profile header */}
         <div className="flex items-center justify-between px-6 pt-8 pb-6">
           <div className="flex items-center gap-3">
-            {user?.avatar
-              ? <img src={user.avatar} alt="User avatar" className="h-11 w-11 rounded-full object-cover" />
-              : <GuestAvatar />
-            }
+            {user?.avatar ? (
+              <img src={user.avatar} alt="avatar" className="h-11 w-11 rounded-full object-cover" />
+            ) : user ? (
+              <InitialsAvatar name={user.name} className="h-11 w-11 text-base" />
+            ) : (
+              <GuestAvatar className="h-11 w-11" />
+            )}
             <div>
               <p className="font-semibold text-gray-900">{user?.name ?? 'User'}</p>
               <button type="button" onClick={handleViewProfile} className="text-xs text-primary hover:underline flex items-center gap-1">
@@ -187,7 +203,6 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Drawer nav links */}
         <div className="flex-1 px-4 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.path
@@ -225,7 +240,6 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Upgrade banner */}
         <div className="mx-4 mb-8 rounded-[16px] bg-primary px-5 py-4 text-white text-center">
           <p className="text-xs font-medium opacity-80">SafeScan Pro</p>
           <p className="text-sm font-medium mt-0.5">Upgrade for unlimited scans</p>

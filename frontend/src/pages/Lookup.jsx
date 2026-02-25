@@ -2,23 +2,23 @@ import { useState, useMemo } from 'react'
 import Search from '../assets/icons/search.svg?react'
 import EmptyState from '../components/ingredients/EmptyState'
 import IngredientCard from '../components/ingredients/IngredientCard'
-import { INGREDIENTS } from '../constants/ingredients'
+import ingredientsData from '../constants/ingredients.json'
+
+const STATUS_MAP = {
+    'Safe': 'safe',
+    'Risky': 'risky',
+    'Restricted': 'restricted',
+}
+
+const INGREDIENTS = Object.entries(ingredientsData).map(([name, info], index) => ({
+    id: index + 1,
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    safety: STATUS_MAP[info.status] ?? 'safe',
+    description: info.explanation,
+}))
 
 export default function Lookup() {
     const [query, setQuery] = useState('')
-
-    // useEffect(() => {
-    //     const fetchIngredients = async () => {
-    //         try {
-    //             const res = await fetch('/api/ingredients')
-    //             const data = await res.json()
-    //             setIngredients(data)
-    //         } catch (err) {
-    //             console.error('Failed to fetch ingredients:', err)
-    //         }
-    //     }
-    //     fetchIngredients()
-    // }, [])
 
     const filtered = useMemo(() => {
         if (!query.trim()) return INGREDIENTS
