@@ -252,6 +252,7 @@
       "post": {
         "tags": ["Scan"],
         "summary": "Analyze edited OCR text (no image)",
+        "description": "Analyze ingredient text using dataset (PostgreSQL), AI service, or built-in rules. Returns risk level and matched ingredients.",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -265,7 +266,17 @@
         },
         "responses": {
           "200": {
-            "description": "Analysis result"
+            "description": "Analysis result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - text is required"
           }
         }
       }
@@ -364,7 +375,98 @@
         "properties": {
           "text": {
             "type": "string",
+            "description": "Ingredient text to analyze (can be raw OCR output or edited text)",
             "example": "Ingredients: Aqua, Glycerin, Paraben, Fragrance"
+          }
+        }
+      },
+      "AnalyzeResponse": {
+        "type": "object",
+        "properties": {
+          "scanId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "ID of saved scan (if user is authenticated)"
+          },
+          "extractedText": {
+            "type": "string",
+            "description": "The input text that was analyzed"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH"],
+            "description": "Overall risk level based on matched ingredients"
+          },
+          "matched_ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Ingredient name from dataset"
+                },
+                "risk_level": {
+                  "type": "string",
+                  "enum": ["LOW", "MEDIUM", "HIGH"]
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Explanation of the risk assessment"
+                }
+              }
+            }
+          },
+          "explanations": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of explanations for flagged ingredients"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["dataset", "ai", "rules"],
+            "description": "Source of analysis: dataset (PostgreSQL), ai (external AI service), or rules (built-in rules)"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Recommendations (only present when source is 'ai')"
+          },
+          "model_version": {
+            "type": "string",
+            "description": "AI model version (only present when source is 'ai')"
+          },
+          "ingredients": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of normalized ingredient tokens (only present when source is 'rules')"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ingredient": { "type": "string" },
+                "status": { "type": "string" },
+                "explanation": { "type": "string" },
+                "matchedKey": { "type": "string", "nullable": true }
+              }
+            },
+            "description": "Detailed results (only present when source is 'rules')"
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "total": { "type": "integer" },
+              "safe": { "type": "integer" },
+              "risky": { "type": "integer" },
+              "restricted": { "type": "integer" },
+              "unknown": { "type": "integer" }
+            },
+            "description": "Summary counts (only present when source is 'rules')"
+          },
+          "disclaimer": {
+            "type": "string"
           }
         }
       },

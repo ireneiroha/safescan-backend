@@ -48,35 +48,31 @@ app.use(
   })
 );
 
+// Allowed origins for CORS
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://my-production-frontend.com',
+];
+
 /**
  * CORS (credentials-safe)
- * - If CORS_ORIGIN is set, allow only that origin.
- * - If not set:
- *    - in development: reflect the request origin (works with credentials)
- *    - in production: deny browser origins by default (safer), but still allow non-browser tools (no Origin header)
+ * - Allow only specific origins (localhost for dev, production domain)
+ * - Allow requests without origin (Postman, curl, etc.)
+ * - Reject all other origins
  */
-const corsOrigin =
-  process.env.CORS_ORIGIN && process.env.CORS_ORIGIN.trim()
-    ? process.env.CORS_ORIGIN.trim()
-    : null;
-
 app.use(
   cors({
     origin: (origin, cb) => {
-      // Requests from tools like curl/postman often have no Origin header:
+      // Allow requests without origin (Postman, curl, server-to-server)
       if (!origin) return cb(null, true);
 
-      // If explicit origin is configured, enforce it:
-      if (corsOrigin) return cb(null, origin === corsOrigin);
-
-      // No configured origin:
-      if (!isProduction) {
-        // Dev: reflect any origin (credentials-safe)
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
         return cb(null, true);
       }
 
-      // Prod: be conservative if not configured
-      return cb(new Error('CORS_ORIGIN is not set in production'), false);
+      // Reject all other origins
+      return cb(new Error('Origin not allowed by CORS'), false);
     },
     credentials: true,
   })
