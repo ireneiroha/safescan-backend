@@ -33,7 +33,6 @@ export default function SignUp() {
         if (Object.keys(errs).length === 0) {
             setLoading(true);
             try {
-                // replace with actual API call
                 // const res = await fetch('/api/auth/register', {
                 //     method: 'POST',
                 //     headers: { 'Content-Type': 'application/json' },
@@ -41,106 +40,111 @@ export default function SignUp() {
                 // })
                 // const data = await res.json()
                 // login(data.user, data.token)
-                
-                await new Promise((res) => setTimeout(res, 2000)); // remove once I have an API
-                navigate("/");
+                await new Promise((res) => setTimeout(res, 2000));
+                navigate("/scan-home");
                 // eslint-disable-next-line no-unused-vars
             } catch (err) {
-                // handle errors
                 setLoading(false);
             }
         }
     }
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-bg-primary py-10">
-            <div className="w-full max-w-md p-4">
-                <AuthTitle
-                    title="Create Account"
-                    description={<>Please Sign up to continue<br />your journey</>}
-                />
+        <div className="flex h-screen bg-bg-primary overflow-hidden justify-center">
+            <div className="flex w-full max-w-[1440px] h-full">
 
-                <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-8 mt-6">
-                    <InputField
-                        label="Full Name"
-                        name="fullName"
-                        placeholder="eg. Agbo Emmanuel"
-                        value={values.fullName}
-                        onChange={handleChange}
-                        error={errors.fullName}
+                <div className="hidden md:block w-[45%] shrink-0 p-6">
+                    <img
+                        src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=900&q=80"
+                        alt="Skincare products"
+                        className="h-full w-full object-cover rounded-3xl"
                     />
-                    <InputField
-                        label="Email"
-                        name="email"
-                        type="email"
-                        placeholder="example@gmail.com"
-                        value={values.email}
-                        onChange={handleChange}
-                        error={errors.email}
-                    />
-                    <InputField
-                        label="Password"
-                        name="password"
-                        type="password"
-                        placeholder="••••••••••"
-                        value={values.password}
-                        onChange={handleChange}
-                        error={errors.password}
-                    />
-                    <InputField
-                        label="Confirm Password"
-                        name="confirmPassword"
-                        type="password"
-                        placeholder="••••••••••"
-                        value={values.confirmPassword}
-                        onChange={handleChange}
-                        error={errors.confirmPassword}
-                    />
+                </div>
 
-
-                    <div className="flex items-center">
-                        <input
-                            id="link-checkbox"
-                            type="checkbox"
-                            value=""
-                            className="w-4 h-4 border-[1.5px] border-deep-teal rounded-md bg-bg-secondary focus:ring-2 focus:ring-deep-teal cursor-pointer accent-deep-teal" />
-                        <label
-                            htmlFor="link-checkbox"
-                            className="select-none ms-2 text-sm font-medium text-text-body">
-                            Agree with{" "}
-                            <Link
-                                to="/"
-                                className="text-deep-teal hover:underline">
-                                Terms & Conditions
-                            </Link>
-                        </label>
-                    </div>
-
-                    <div className="flex flex-col gap-4">
-                        <Button
-                            text="Sign Up"
-                            type="submit"
-                            variant="primary"
-                            loading={loading}
-                            loadingText="Signing Up..."
+                <div className="flex flex-1 items-center justify-center px-6 md:px-16 overflow-y-auto py-8">
+                    <div className="w-full max-w-lg">
+                        <AuthTitle
+                            title="Create Account"
+                            description={<>Please Sign up to continue<br />your journey</>}
                         />
 
-                        <Button
-                            text="Continue as a Guest"
-                            variant="outline"
-                            onClick={() => navigate("/")}
-                            disabled={loading}
-                            className="mt-0"
+                        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5 mt-6">
+                            <InputField
+                                label="Full Name"
+                                name="fullName"
+                                placeholder="eg. Agbo Emmanuel"
+                                value={values.fullName}
+                                onChange={handleChange}
+                                error={errors.fullName}
+                            />
+                            <InputField
+                                label="Email"
+                                name="email"
+                                type="email"
+                                placeholder="example@gmail.com"
+                                value={values.email}
+                                onChange={handleChange}
+                                error={errors.email}
+                            />
+                            <InputField
+                                label="Password"
+                                name="password"
+                                type="password"
+                                placeholder="••••••••••"
+                                value={values.password}
+                                onChange={handleChange}
+                                error={errors.password}
+                            />
+                            <InputField
+                                label="Confirm Password"
+                                name="confirmPassword"
+                                type="password"
+                                placeholder="••••••••••"
+                                value={values.confirmPassword}
+                                onChange={handleChange}
+                                error={errors.confirmPassword}
+                            />
+
+                            <div className="flex items-center">
+                                <input
+                                    id="link-checkbox"
+                                    type="checkbox"
+                                    className="w-4 h-4 border-[1.5px] border-deep-teal rounded-md bg-bg-secondary focus:ring-2 focus:ring-deep-teal cursor-pointer accent-deep-teal"
+                                />
+                                <label htmlFor="link-checkbox" className="select-none ms-2 text-sm font-medium text-text-body">
+                                    Agree with{" "}
+                                    <Link to="/" className="text-deep-teal hover:underline">
+                                        Terms & Conditions
+                                    </Link>
+                                </label>
+                            </div>
+
+                            <div className="flex flex-col gap-4">
+                                <Button
+                                    text="Sign Up"
+                                    type="submit"
+                                    variant="primary"
+                                    loading={loading}
+                                    loadingText="Signing Up..."
+                                />
+                                <Button
+                                    text="Continue as a Guest"
+                                    variant="outline"
+                                    onClick={() => navigate("/")}
+                                    disabled={loading}
+                                />
+                            </div>
+                        </form>
+
+                        <SocialAuth
+                            auth="Sign Up"
+                            redirectTo="/login"
+                            alternateLink="Sign In"
                         />
                     </div>
-                </form>
+                </div>
 
-                <SocialAuth
-                    auth="Sign Up"
-                    redirectTo="/login"
-                    alternateLink="Sign In"
-                />
             </div>
         </div>
-    );
+    )
 }

@@ -5,13 +5,11 @@ import InputField from "../components/ui/InputField";
 import Button from "../components/ui/Button";
 import { validateLogin } from "../utils/validate";
 import SocialAuth from "../components/ui/SocialAuth";
+import SignInImg from '../assets/images/signIn.png'
 // import { useAuth } from "../context/AuthContext";
 
 export default function SignIn() {
-    const [values, setValues] = useState({
-        email: "",
-        password: ""
-    });
+    const [values, setValues] = useState({ email: "", password: "" });
     const [errors, setErrors] = useState({});
     const [submitted, setSubmitted] = useState(false);
     const navigate = useNavigate();
@@ -33,7 +31,6 @@ export default function SignIn() {
         if (Object.keys(errs).length === 0) {
             setLoading(true);
             try {
-                // replace with actual API call
                 // const res = await fetch('/api/auth/login', {
                 //     method: 'POST',
                 //     headers: { 'Content-Type': 'application/json' },
@@ -41,9 +38,8 @@ export default function SignIn() {
                 // })
                 // const data = await res.json()
                 // login(data.user, data.token)
-                await new Promise((res) => setTimeout(res, 2000)); // remove once I have an API
-
-                navigate("/");
+                await new Promise((res) => setTimeout(res, 2000));
+                navigate("/scan-home");
                 // eslint-disable-next-line no-unused-vars
             } catch (err) {
                 setLoading(false);
@@ -52,54 +48,66 @@ export default function SignIn() {
     }
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-bg-primary">
-            <div className="w-full max-w-md p-4">
-                <AuthTitle
-                    title="Welcome Back!"
-                    description="Sign in to start scanning safely"
-                />
+        <div className="flex h-screen bg-bg-primary overflow-hidden justify-center">
+            <div className="flex w-full max-w-[1440px] h-full">
 
-                <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5 mt-6">
-                    <InputField
-                        label="Email"
-                        name="email"
-                        type="email"
-                        placeholder="example@gmail.com"
-                        value={values.email}
-                        onChange={handleChange}
-                        error={errors.email}
+                <div className="hidden md:block w-[45%] shrink-0 p-6">
+                    <img
+                        src={SignInImg}
+                        alt="Skincare store"
+                        className="h-full w-full object-cover rounded-3xl"
                     />
-                    <InputField
-                        label="Password"
-                        name="password"
-                        type="password"
-                        placeholder="••••••••••"
-                        value={values.password}
-                        onChange={handleChange}
-                        error={errors.password}
-                    />
+                </div>
 
-                    <div className="flex justify-end -mt-2">
-                        <a href="/forgot-password" className="text-sm text-deep-teal hover:text-primary hover:underline transition-colors">
-                            Forgot password?
-                        </a>
+                <div className="flex flex-1 items-center justify-center px-6 md:px-16 overflow-y-auto">
+                    <div className="w-full max-w-lg">
+                        <AuthTitle
+                            title="Welcome Back!"
+                            description="Sign in to start scanning safely"
+                        />
+
+                        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5 mt-6">
+                            <InputField
+                                label="Email"
+                                name="email"
+                                type="email"
+                                placeholder="example@gmail.com"
+                                value={values.email}
+                                onChange={handleChange}
+                                error={errors.email}
+                            />
+                            <InputField
+                                label="Password"
+                                name="password"
+                                type="password"
+                                placeholder="••••••••••"
+                                value={values.password}
+                                onChange={handleChange}
+                                error={errors.password}
+                            />
+                            <div className="flex justify-end -mt-2">
+                                <a href="/forgot-password" className="text-sm text-deep-teal hover:text-primary hover:underline transition-colors">
+                                    Forgot password?
+                                </a>
+                            </div>
+                            <Button
+                                text="Sign In"
+                                type="submit"
+                                variant="primary"
+                                loading={loading}
+                                loadingText="Signing In..."
+                                className="mt-5"
+                            />
+                        </form>
+
+                        <SocialAuth
+                            auth="Sign In"
+                            redirectTo="/register"
+                            alternateLink="Sign Up"
+                        />
                     </div>
+                </div>
 
-                    <Button
-                        text="Sign In"
-                        type="submit"
-                        variant="primary"
-                        loading={loading}
-                        loadingText="Signing In..."
-                        className="mt-5"
-                    />
-                </form>
-
-                <SocialAuth
-                    auth="Sign In"
-                    redirectTo="/register"
-                    alternateLink="Sign Up"
-                />
             </div>
         </div>
     )

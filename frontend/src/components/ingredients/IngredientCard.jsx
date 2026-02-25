@@ -4,7 +4,7 @@ export default function IngredientCard({ name, safety, description, clinicalUrl 
     const config = SAFETY_CONFIG[safety]
 
     return (
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-2">
                 <h3 className="text-base font-bold text-text-title">{name}</h3>
                 <span className={`text-xs font-bold px-3 py-1 rounded-full ${config.className}`}>
