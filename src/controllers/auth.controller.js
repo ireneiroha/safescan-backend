@@ -106,41 +106,46 @@ exports.login = async (req, res) => {
       return res.status(500).json({ error: 'JWT secret not configured' });
     }
 
-  
+    const { email, password } = req.body;
 
-    const { email } = req.body;
-    
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+    // Validate that both email and password are present
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    // Try to find existing user
+    // Query the database for user with the provided email
     let result;
     try {
-      result = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+      result = await db.query('SELECT id, email, password FROM users WHERE email = $1 LIMIT 1', [email]);
     } catch (dbError) {
       console.error('Database query error:', dbError.message);
       console.error('Stack:', dbError.stack);
       return res.status(503).json({ error: 'Database connection failed' });
     }
 
-    let userId;
+    // If user is not found, return 401
     if (result.rows.length === 0) {
-      // Create new user
-      try {
-        const insert = await db.query('INSERT INTO users (email) VALUES ($1) RETURNING id', [email]);
-        userId = insert.rows[0].id;
-      } catch (dbError) {
-        console.error('Database insert error:', dbError.message);
-        console.error('Stack:', dbError.stack);
-        return res.status(503).json({ error: 'Database connection failed' });
-      }
-    } else {
-      userId = result.rows[0].id;
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    // Sign JWT
-    const token = jwt.sign({ userId, email }, jwtSecret, { expiresIn: '1h' });
+    const user = result.rows[0];
+
+    // Compare the provided password with the hashed password in the database
+    let passwordMatch;
+    try {
+      passwordMatch = await bcrypt.compare(password, user.password);
+    } catch (compareError) {
+      console.error('Password comparison error:', compareError.message);
+      return res.status(500).json({ error: 'Authentication failed' });
+    }
+
+    // If password does NOT match, return 401
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
+    }
+
+    // Password matches - generate JWT token
+    const token = jwt.sign({ userId: user.id, email: user.email }, jwtSecret, { expiresIn: '1h' });
     res.json({ token });
   } catch (e) {
     // Handle JWT signing errors
