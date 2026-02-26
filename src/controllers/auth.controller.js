@@ -2,6 +2,12 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 
+// Strong password validation regex:
+// - Minimum 8 characters
+// - At least 2 numbers
+// - At least 1 symbol
+const strongPasswordRegex = /^(?=(?:.*\d){2,})(?=.*[!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`]).{8,}$/;
+
 // JWT Secret validation - defensive check
 const getJwtSecret = () => {
   if (!process.env.JWT_SECRET) {
@@ -32,13 +38,19 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    // Validate password
+    // Validate password exists
     if (!password) {
       return res.status(400).json({ error: 'Password is required' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    // Validate strong password requirements:
+    // - Minimum 8 characters
+    // - At least 2 numbers
+    // - At least 1 symbol
+    if (!strongPasswordRegex.test(password)) {
+      return res.status(400).json({ 
+        error: 'Password must be at least 8 characters long, contain at least 2 numbers and 1 symbol.' 
+      });
     }
 
     // Check if email already exists
@@ -55,14 +67,8 @@ exports.register = async (req, res) => {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
-    // Hash password
-    let hashedPassword;
-    try {
-      hashedPassword = await bcrypt.hash(password, 10);
-    } catch (hashError) {
-      console.error('Password hashing error:', hashError.message);
-      return res.status(500).json({ error: 'Failed to process registration' });
-    }
+    // Hash password using bcrypt
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new user with consent (POPIA/GDPR compliance)
     let newUser;
@@ -130,14 +136,8 @@ exports.login = async (req, res) => {
 
     const user = result.rows[0];
 
-    // Compare the provided password with the hashed password in the database
-    let passwordMatch;
-    try {
-      passwordMatch = await bcrypt.compare(password, user.password);
-    } catch (compareError) {
-      console.error('Password comparison error:', compareError.message);
-      return res.status(500).json({ error: 'Authentication failed' });
-    }
+    // Compare the provided password with the hashed password in the database using bcrypt.compare
+    const passwordMatch = await bcrypt.compare(password, user.password);
 
     // If password does NOT match, return 401
     if (!passwordMatch) {

@@ -12,6 +12,38 @@ const safeLogger = require('./utils/safeLogger');
 
 const app = express();
 
+// ========== CORS CONFIGURATION (Applied FIRST - before all routes) ==========
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://safescan-backend-1.onrender.com',
+  'https://my-production-frontend.com',
+];
+
+/**
+ * CORS (credentials-safe)
+ * - Allow only specific origins (localhost for dev, production domain)
+ * - Allow requests without origin (Postman, curl, etc.)
+ * - Reject all other origins
+ */
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // Allow requests without origin (Postman, curl, server-to-server)
+      if (!origin) return cb(null, true);
+
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        return cb(null, true);
+      }
+
+      // Reject all other origins
+      return cb(new Error('Origin not allowed by CORS'), false);
+    },
+    credentials: true,
+  })
+);
+// ============================================================================
+
 /**
  * Health check route at root (keep it first)
  * Render health checks will hit "/" by default sometimes.
@@ -45,37 +77,6 @@ if (!process.env.CORS_ORIGIN) {
 app.use(
   helmet({
     contentSecurityPolicy: false, // Disable CSP for API
-  })
-);
-
-// Allowed origins for CORS
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://safescan-backend-1.onrender.com',
-  'https://my-production-frontend.com',
-];
-
-/**
- * CORS (credentials-safe)
- * - Allow only specific origins (localhost for dev, production domain)
- * - Allow requests without origin (Postman, curl, etc.)
- * - Reject all other origins
- */
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      // Allow requests without origin (Postman, curl, server-to-server)
-      if (!origin) return cb(null, true);
-
-      // Check if origin is in allowed list
-      if (allowedOrigins.includes(origin)) {
-        return cb(null, true);
-      }
-
-      // Reject all other origins
-      return cb(new Error('Origin not allowed by CORS'), false);
-    },
-    credentials: true,
   })
 );
 
