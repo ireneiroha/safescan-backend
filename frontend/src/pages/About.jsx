@@ -102,7 +102,7 @@ export default function About() {
                 {/* Hero */}
                 <div ref={heroRef} className="opacity-0 text-center mb-12">
                     <img src={SafeScanLogo} alt="SafeScan" className="h-9 mx-auto mb-6" />
-                    <h1 className="text-4xl font-black text-text-title leading-tight mb-2">
+                    <h1 className="text-4xl font-black text-primary leading-tight mb-2">
                         Welcome to SafeScan
                     </h1>
                     <p className="text-lg font-semibold text-primary">
