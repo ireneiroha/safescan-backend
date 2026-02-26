@@ -21,11 +21,47 @@ export const VerifiedIngredientsBadge = () => {
 export default function ScanLanding() {
   const fileInputRef = useRef(null)
   const [showCamera, setShowCamera] = useState(false)
+  const [scanning, setScanning] = useState(false)
   const navigate = useNavigate()
 
-  const handleImageReady = (imageData) => {
-    // For now pass empty string so user can type/paste manually
-    navigate('/confirm', { state: { imageData, extractedText: '' } })
+  const handleImageReady = async (imageData) => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      navigate('/login')
+      return
+    }
+
+    setScanning(true)
+    try {
+      const fetchRes = await fetch(imageData)
+      const blob = await fetchRes.blob()
+      const formData = new FormData()
+      formData.append('image', blob, 'scan.jpg')
+
+      const res = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+      const data = await res.json()
+
+      if (res.status === 401) {
+        localStorage.removeItem('token')
+        navigate('/login')
+        return
+      }
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to scan image. Please try again.')
+        return
+      }
+
+      navigate('/confirm', { state: { imageData, extractedText: data.extractedText } })
+    } catch (err) {
+      alert('Failed to scan image. Please try again.')
+    } finally {
+      setScanning(false)
+    }
   }
 
   const handleFileChange = (e) => {
@@ -40,6 +76,29 @@ export default function ScanLanding() {
   const handleCameraCapture = (imageData) => {
     setShowCamera(false)
     handleImageReady(imageData)
+  }
+
+  if (scanning) {
+    return (
+      <div className="min-h-[calc(100vh-72px)] flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-white rounded-3xl border border-border shadow-sm flex flex-col items-center justify-center px-8 py-16 text-center">
+          <div className="relative h-16 w-16 mb-6">
+            <svg className="animate-spin h-16 w-16" viewBox="0 0 64 64" fill="none">
+              <circle cx="32" cy="32" r="26" stroke="#E0EFEE" strokeWidth="6" />
+              <path d="M32 6 a26 26 0 0 1 26 26" stroke="url(#scanGrad)" strokeWidth="6" strokeLinecap="round" />
+              <defs>
+                <linearGradient id="scanGrad" x1="32" y1="6" x2="58" y2="32" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#0D645D" />
+                  <stop offset="100%" stopColor="#A8D5D2" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-text-title mb-2">Reading label...</h2>
+          <p className="text-sm text-text-secondary">Extracting ingredients from your image.</p>
+        </div>
+      </div>
+    )
   }
 
   if (showCamera) {

@@ -3,8 +3,24 @@ import { createContext, useContext, useState } from 'react'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-    // replace with real user data
-    const [user, setUser] = useState(null)
+    const [user, setUser] = useState(() => {
+        const token = localStorage.getItem('token')
+        if (!token) return null
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]))
+            if (payload.exp * 1000 < Date.now()) {
+                localStorage.removeItem('token')
+                return null
+            }
+            return {
+                email: payload.email,
+                name: localStorage.getItem('userName') ?? payload.email,
+                createdAt: localStorage.getItem('userCreatedAt') ?? new Date().toISOString()
+            }
+        } catch {
+            return null
+        }
+    })
 
     const login = (userData, token) => {
         localStorage.setItem('token', token)

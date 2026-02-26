@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import ScanImg from '../assets/images/scanImg.svg';
 import SummaryBadge from "../components/ingredients/SummaryBadge";
 import IngredientResultCard from "../components/ingredients/IngredientResultCard";
@@ -70,8 +70,35 @@ const MOCK_RESULT = {
 export default function Results() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const result = MOCK_RESULT
-    const risk = RISK_CONFIG[result.safety]
+    const location = useLocation()
+
+    const apiResult = location.state?.result
+    const imageData = location.state?.imageData ?? null
+    let result
+    if (apiResult) {
+        const overallSafety = apiResult.summary?.restricted > 0 ? 'restricted'
+            : apiResult.summary?.risky > 0 ? 'risky' : 'safe'
+        const scannedAt = new Date()
+        result = {
+            id: 1,
+            productName: `Scan — ${scannedAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`,
+            productSubtitle: `${apiResult.summary?.total ?? 0} ingredients detected`,
+            productImage: imageData || ScanImg,
+            safety: overallSafety,
+            category: 'skincare',
+            scannedAt: scannedAt.toISOString(),
+            ingredients: (apiResult.results || []).map((r, i) => ({
+                id: i + 1,
+                name: r.ingredient,
+                safety: (r.status || 'unknown').toLowerCase(),
+                description: r.explanation || 'No additional information available.'
+            }))
+        }
+    } else {
+        result = MOCK_RESULT
+    }
+
+    const risk = RISK_CONFIG[result.safety] || RISK_CONFIG.safe
 
     const safeCount = result.ingredients.filter(i => i.safety === 'safe').length
     const riskyCount = result.ingredients.filter(i => i.safety === 'risky').length
@@ -81,26 +108,6 @@ export default function Results() {
     const sortedIngredients = [...result.ingredients].sort(
         (a, b) => SAFETY_ORDER[a.safety] - SAFETY_ORDER[b.safety]
     )
-
-    // const [result, setResult] = useState(null)
-    // const [loading, setLoading] = useState(true)
-    // useEffect(() => {
-    //   const fetchResult = async () => {
-    //     try {
-    //       const token = localStorage.getItem('token')
-    //       const res = await fetch(`/api/scan-history/${id}`, {
-    //         headers: { Authorization: `Bearer ${token}` }
-    //       })
-    //       const data = await res.json()
-    //       setResult(data)
-    //     } catch (err) {
-    //       console.error('Failed to fetch scan result:', err)
-    //     } finally {
-    //       setLoading(false)
-    //     }
-    //   }
-    //   fetchResult()
-    // }, [id])
 
     return (
         <div className="mx-auto max-w-md md:max-w-[1440px] px-4 py-6 md:px-10 md:py-8">

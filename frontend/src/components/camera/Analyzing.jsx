@@ -5,34 +5,32 @@ export default function Analyzing() {
     const navigate = useNavigate()
     const location = useLocation()
     const ingredients = location.state?.ingredients ?? ''
-    // const imageData = location.state?.imageData ?? null
+    const imageData = location.state?.imageData ?? null
 
-    useEffect(() => {        
-        // const analyze = async () => {
-        //     try {
-        //         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/scan/analyze`, {
-        //             method: 'POST',
-        //             headers: {
-        //                 'Content-Type': 'application/json',
-        //                 Authorization: `Bearer ${localStorage.getItem('token')}`
-        //             },
-        //             body: JSON.stringify({ text: ingredients })
-        //         })
-        //         const data = await res.json()
-        //         navigate(`/scan-result/${data.id}`, { replace: true })
-        //     } catch (err) {
-        //         console.error('Analysis failed:', err)
-        //         navigate('/scan-home')
-        //     }
-        // }
-        // analyze()
-
-        // Mock delay
-        const timer = setTimeout(() => {
-            navigate('/scan-result/1', { replace: true })
-        }, 5000)
-
-        return () => clearTimeout(timer)
+    useEffect(() => {
+        const analyze = async () => {
+            try {
+                const res = await fetch('/api/scan/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ text: ingredients })
+                })
+                if (res.status === 401) {
+                    localStorage.removeItem('token')
+                    navigate('/login', { replace: true })
+                    return
+                }
+                const data = await res.json()
+                navigate('/scan-result/result', { state: { result: data, imageData }, replace: true })
+            } catch (err) {
+                console.error('Analysis failed:', err)
+                navigate('/scan-home')
+            }
+        }
+        analyze()
     }, [ingredients, navigate])
 
     return (

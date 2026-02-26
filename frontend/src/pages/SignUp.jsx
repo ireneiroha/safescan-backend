@@ -50,7 +50,7 @@ export default function SignUp() {
                 if (!res.ok) throw new Error(data.error);
 
                 localStorage.setItem('userName', values.fullName)
-                localStorage.setItem('userCreatedAt', data.user.createdAt)
+                localStorage.setItem('userCreatedAt', data.user?.createdAt ?? new Date().toISOString())
 
                 const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
                     method: 'POST',
@@ -63,7 +63,7 @@ export default function SignUp() {
                 login({
                     email: values.email,
                     name: values.fullName,
-                    createdAt: data.user.createdAt
+                    createdAt: data.user?.createdAt ?? new Date().toISOString()
                 }, loginData.token);
                 navigate('/');
             } catch (err) {
