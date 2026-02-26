@@ -5,7 +5,7 @@ import IngredientResultCard from "../components/ingredients/IngredientResultCard
 import Button from "../components/ui/Button";
 
 const RISK_CONFIG = {
-    restricted: {
+    HIGH: {
         label: 'High Risk Detected',
         description: 'Contains ingredients that are restricted or of concern.',
         badge: 'Restricted',
@@ -19,7 +19,7 @@ const RISK_CONFIG = {
             </svg>
         ),
     },
-    risky: {
+    MEDIUM: {
         label: 'Caution Advised',
         description: 'Some ingredients may cause sensitivity or irritation for certain skin types.',
         badge: 'Risky',
@@ -33,7 +33,7 @@ const RISK_CONFIG = {
             </svg>
         ),
     },
-    safe: {
+    LOW: {
         label: 'All Clear',
         description: 'No harmful or restricted ingredients detected in this product.',
         badge: 'Safe',
@@ -49,75 +49,45 @@ const RISK_CONFIG = {
     },
 }
 
-const MOCK_RESULT = {
-    id: 1,
-    productName: 'Hydration Boost Serum',
-    productSubtitle: 'Hydrating Serum',
-    productImage: ScanImg,
-    safety: 'restricted',
-    category: 'skincare',
-    scannedAt: new Date().toISOString(),
-    ingredients: [
-        { id: 1, name: 'Parabens', safety: 'restricted', description: 'Synthetic preservatives linked to endocrine disruption in some studies.' },
-        { id: 2, name: 'Alcohol Denat', safety: 'restricted', description: 'Dries skin and allows other chemicals to penetrate deeper.' },
-        { id: 3, name: 'Glycolic Acid', safety: 'risky', description: 'Removes dead skin but makes you 50% more likely to sunburn.' },
-        { id: 4, name: 'Phenoxyethanol', safety: 'risky', description: 'Safe at 1%, but high exposure is linked to infant health issues.' },
-        { id: 5, name: 'Niacinamide', safety: 'safe', description: 'Safe alternative to lighteners; fixes uneven skin tone.' },
-        { id: 6, name: 'Glycerin', safety: 'safe', description: 'A universal moisture-magnet for skin and hair.' },
-    ]
+function transformResults(data) {
+    return (data.results ?? data.matched_ingredients ?? []).map((item, index) => ({
+        id: index + 1,
+        name: item.ingredient ?? item.name,
+        safety: item.status === 'Restricted' || item.risk_level === 'HIGH' ? 'restricted'
+            : item.status === 'Risky' || item.risk_level === 'MEDIUM' ? 'risky'
+            : 'safe',
+        description: item.explanation ?? item.reason ?? '',
+    }))
 }
 
 export default function Results() {
     const { id } = useParams()
     const navigate = useNavigate()
     const location = useLocation()
+    const data = location.state?.result
 
-    const apiResult = location.state?.result
-    const imageData = location.state?.imageData ?? null
-    let result
-    if (apiResult) {
-        const overallSafety = apiResult.summary?.restricted > 0 ? 'restricted'
-            : apiResult.summary?.risky > 0 ? 'risky' : 'safe'
-        const scannedAt = new Date()
-        result = {
-            id: 1,
-            productName: `Scan — ${scannedAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`,
-            productSubtitle: `${apiResult.summary?.total ?? 0} ingredients detected`,
-            productImage: imageData || ScanImg,
-            safety: overallSafety,
-            category: 'skincare',
-            scannedAt: scannedAt.toISOString(),
-            ingredients: (apiResult.results || []).map((r, i) => ({
-                id: i + 1,
-                name: r.ingredient,
-                safety: (r.status || 'unknown').toLowerCase(),
-                description: r.explanation || 'No additional information available.'
-            }))
-        }
-    } else {
-        result = MOCK_RESULT
+    if (!data) {
+        navigate('/scan-home', { replace: true })
+        return null
     }
 
-    const risk = RISK_CONFIG[result.safety] || RISK_CONFIG.safe
+    const riskLevel = data.risk_level ?? 'LOW'
+    const risk = RISK_CONFIG[riskLevel] ?? RISK_CONFIG.LOW
+    const ingredients = transformResults(data)
+    const summary = data.summary ?? {}
 
-    const safeCount = result.ingredients.filter(i => i.safety === 'safe').length
-    const riskyCount = result.ingredients.filter(i => i.safety === 'risky').length
-    const restrictedCount = result.ingredients.filter(i => i.safety === 'restricted').length
+    const safeCount = summary.safe ?? ingredients.filter(i => i.safety === 'safe').length
+    const riskyCount = summary.risky ?? ingredients.filter(i => i.safety === 'risky').length
+    const restrictedCount = summary.restricted ?? ingredients.filter(i => i.safety === 'restricted').length
 
     const SAFETY_ORDER = { restricted: 0, risky: 1, safe: 2 }
-    const sortedIngredients = [...result.ingredients].sort(
-        (a, b) => SAFETY_ORDER[a.safety] - SAFETY_ORDER[b.safety]
-    )
+    const sortedIngredients = [...ingredients].sort((a, b) => SAFETY_ORDER[a.safety] - SAFETY_ORDER[b.safety])
 
     return (
         <div className="mx-auto max-w-md md:max-w-[1440px] px-4 py-6 md:px-10 md:py-8">
-
             <div className="flex items-center justify-between mb-5 md:mb-8">
-                <button
-                    type="button"
-                    onClick={() => navigate(-1)}
-                    className="flex items-center gap-1.5 text-sm font-medium text-text-title hover:text-primary transition-colors"
-                >
+                <button type="button" onClick={() => navigate(-1)}
+                    className="flex items-center gap-1.5 text-sm font-medium text-text-title hover:text-primary transition-colors">
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
@@ -132,26 +102,16 @@ export default function Results() {
 
                     <div className="md:w-[380px] md:shrink-0 md:flex md:flex-col">
                         <div className="relative rounded-2xl overflow-hidden h-[400px] md:flex-1 mb-4">
-                            <img
-                                src={result.productImage}
-                                alt={result.productName}
-                                className="w-full h-full object-cover"
-                            />
+                            <img src={ScanImg} alt="Product" className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                             <div className="absolute bottom-0 left-0 right-0 p-4">
                                 <p className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-1">
-                                    {result.productSubtitle}
+                                    {data.productCategory ?? 'Product'}
                                 </p>
-                                <h2 className="text-xl font-bold text-white leading-tight">
-                                    {result.productName}
-                                </h2>
+                                <h2 className="text-xl font-bold text-white leading-tight">Scan Result</h2>
                             </div>
                         </div>
-                        <Button
-                            text="Scan Another"
-                            variant="primary"
-                            onClick={() => navigate('/scan-home')}
-                        />
+                        <Button text="Scan Another" variant="primary" onClick={() => navigate('/scan-home')} />
                     </div>
 
                     <div className="flex-1 mt-5 md:max-w-[520px] md:mt-0">
@@ -162,24 +122,21 @@ export default function Results() {
                                 <p className={`font-bold text-base ${risk.labelClass}`}>{risk.label}</p>
                             </div>
                             <p className="text-sm text-text-body mb-3">{risk.description}</p>
+                            {data.disclaimer && (
+                                <p className="text-xs text-text-secondary italic mb-3">{data.disclaimer}</p>
+                            )}
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-xs text-text-secondary">
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                                     </svg>
-                                    Category detected:
-                                    <span className="text-text-title font-medium capitalize">{result.category}</span>
+                                    Category:
+                                    <span className="text-text-title font-medium capitalize">{data.productCategory ?? '—'}</span>
                                 </div>
                                 <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full border ${risk.badgeClass}`}>
-                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
                                     {risk.badge}
                                 </span>
                             </div>
-                            <button type="button" className="mt-3 text-sm font-semibold text-primary hover:underline">
-                                Change category
-                            </button>
                         </div>
 
                         <div className="mb-4">
@@ -190,6 +147,20 @@ export default function Results() {
                                 <SummaryBadge count={restrictedCount} label="Restricted" dotClass="bg-danger" badgeClass="bg-[#FDECEC] text-danger border-danger" />
                             </div>
                         </div>
+
+                        {data.recommendations?.length > 0 && (
+                            <div className="mb-4 bg-teal-50 rounded-2xl p-4">
+                                <p className="text-sm font-bold text-text-title mb-2">Recommendations</p>
+                                <ul className="flex flex-col gap-1">
+                                    {data.recommendations.map((rec, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm text-text-body">
+                                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                            {rec}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
 
                         <div className="mb-6">
                             <p className="text-base font-bold text-text-title mb-3">Ingredient Analysis</p>
