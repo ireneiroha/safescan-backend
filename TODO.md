@@ -1,41 +1,20 @@
-# TODO - Production Deployment Updates
+# SafeScan Bug Fixes - COMPLETED
 
-## Task: Update Node.js Express backend for production deployment on Render
+## Bug A: Scan History Summary Not Saved Correctly
+- [x] 1. Fix datasetAnalysis.service.js - Return summary counts
+- [x] 2. Fix scan.controller.js - Save productCategory correctly
+- [x] 3. Fix scan.controller.js - Calculate and save summary counts from dataset/AI results
+- [x] 4. Fix scan.controller.js - Map risk levels correctly (LOW->safe, MEDIUM->risky, HIGH->restricted)
+- [x] 5. Fix scanHistory.controller.js - Ensure productCategory is returned
 
-- [x] Update src/db/index.js with production-ready PostgreSQL configuration
-- [x] Update src/server.js to load dotenv only in development
-- [x] Verify changes are correct
+## Bug B: Dataset Matching Issues
+- [x] 1. Fix datasetAnalysis.service.js - Exact token match only on ingredient_name
+- [x] 2. Fix datasetAnalysis.service.js - Alias match only for whole tokens (comma-separated)
+- [x] 3. Fix datasetAnalysis.service.js - Remove substring/partial matching
+- [x] 4. Fix datasetAnalysis.service.js - Add debug logging for parsedTokens
+- [x] 5. Fix scan.controller.js - Use corrected dataset analysis response properly
 
-## Changes Summary:
-1. **src/db/index.js**:
-   - Remove dotenv require (handled in server.js for dev only)
-   - Use DATABASE_URL if present, else use individual PG* vars
-   - Add SSL support for production
-   - Add proper error logging (error message and code)
-
-2. **src/server.js**:
-   - Load dotenv only when NODE_ENV !== 'production'
-   - Keep PORT = process.env.PORT || 5000
-
----
-
-## Task: Add User Registration Feature
-
-- [x] Update src/controllers/auth.controller.js with register function
-- [x] Add Swagger documentation for /api/auth/register
-- [x] Login functionality unchanged
-
-## Registration Feature Changes:
-1. **src/controllers/auth.controller.js**:
-   - Email validation (required, format check)
-   - Password validation (required, min 6 characters)
-   - Check if email already exists
-   - Hash password using bcrypt
-   - Insert user into database
-   - Return 201 with user info (excluding password)
-   - Proper error logging
-
-2. **src/docs/openapi.json**:
-   - Added /api/auth/register endpoint documentation
-   - Request body: email + password
-   - Responses: 201 success, 400 validation error, 409 conflict
+## Files Modified
+1. src/services/datasetAnalysis.service.js
+2. src/controllers/scan.controller.js
+3. src/controllers/scanHistory.controller.js

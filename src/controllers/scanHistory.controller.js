@@ -4,6 +4,7 @@ const db = require('../db');
  * GET /api/scans
  * Protected route (JWT required)
  * Returns paginated scan history for the logged-in user
+ * Includes productCategory and summary counts (safeCount, riskyCount, restrictedCount)
  */
 exports.getScanHistory = async (req, res, next) => {
   try {
@@ -20,6 +21,8 @@ exports.getScanHistory = async (req, res, next) => {
     const total = parseInt(countResult.rows[0].count, 10);
 
     // Get scans with ingredient summary
+    // Summary counts: safeCount (LOW), riskyCount (MEDIUM), restrictedCount (HIGH)
+    // Using lowercase comparison for risk values: 'safe', 'risky', 'restricted'
     const scansResult = await db.query(
       `SELECT 
         s.id,
@@ -30,10 +33,9 @@ exports.getScanHistory = async (req, res, next) => {
           json_build_object(
             'safeCount', SUM(CASE WHEN LOWER(si.risk) = 'safe' THEN 1 ELSE 0 END),
             'riskyCount', SUM(CASE WHEN LOWER(si.risk) = 'risky' THEN 1 ELSE 0 END),
-            'restrictedCount', SUM(CASE WHEN LOWER(si.risk) = 'restricted' THEN 1 ELSE 0 END),
-            'unknownCount', SUM(CASE WHEN LOWER(si.risk) = 'unknown' OR si.risk IS NULL THEN 1 ELSE 0 END)
+            'restrictedCount', SUM(CASE WHEN LOWER(si.risk) = 'restricted' THEN 1 ELSE 0 END)
           ),
-          '{"safeCount": 0, "riskyCount": 0, "restrictedCount": 0, "unknownCount": 0}'::json
+          '{"safeCount": 0, "riskyCount": 0, "restrictedCount": 0}'::json
         ) as summary
       FROM scans s
       LEFT JOIN scan_ingredients si ON s.id = si.scan_id

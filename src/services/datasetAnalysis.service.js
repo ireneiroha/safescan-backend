@@ -3,7 +3,8 @@ const normalizeIngredients = require('../utils/ingredientNormalizer');
 
 /**
  * Query dataset_rows table to find ingredient matches.
- * Supports exact match, alias match, and case-insensitive matching.
+ * Supports ONLY exact token match (case-insensitive) on ingredient_name
+ * and alias match only if aliases contains a whole-token match (comma-separated).
  * 
  * @param {string[]} ingredients - Array of normalized ingredient tokens
  * @returns {Promise<Object>} - Matched ingredients with risk levels and reasons
@@ -13,7 +14,8 @@ async function analyzeWithDataset(ingredients) {
     return {
       matched_ingredients: [],
       explanations: [],
-      risk_level: 'LOW'
+      risk_level: 'LOW',
+      summary: { safeCount: 0, riskyCount: 0, restrictedCount: 0 }
     };
   }
 
@@ -21,12 +23,19 @@ async function analyzeWithDataset(ingredients) {
     const client = await db.pool.connect();
     
     try {
-      // Build query to match ingredients
-      // Try exact match on ingredient_name, then aliases, then case-insensitive
+      // Debug: Log parsed tokens
+      console.log('[DatasetAnalysis] parsedTokens:', ingredients);
+      
       const matches = [];
+      const matchedNames = new Set();
       
       for (const ingredient of ingredients) {
-        // First try exact match on ingredient_name
+        // Skip empty tokens
+        if (!ingredient || ingredient.trim() === '') {
+          continue;
+        }
+        
+        // First: Exact token match on ingredient_name (case-insensitive)
         let result = await client.query(
           `SELECT ingredient_name, risk_level, reason, aliases 
            FROM dataset_rows 
@@ -34,37 +43,37 @@ async function analyzeWithDataset(ingredients) {
           [ingredient]
         );
         
-        // If no exact match, try alias matching
+        // Second: Alias match only if exact match fails
+        // Only match whole tokens in comma-separated aliases list
         if (result.rows.length === 0) {
           result = await client.query(
             `SELECT ingredient_name, risk_level, reason, aliases 
              FROM dataset_rows 
-             WHERE $1 LIKE '%' || LOWER(aliases) || '%' OR 
-                   LOWER($1) = LOWER(aliases)`,
+             WHERE $1 = ANY(string_to_array(LOWER(aliases), ','))`,
             [ingredient.toLowerCase()]
           );
         }
         
-        // If still no match, try case-insensitive contains match
-        if (result.rows.length === 0) {
-          result = await client.query(
-            `SELECT ingredient_name, risk_level, reason, aliases 
-             FROM dataset_rows 
-             WHERE LOWER($1) LIKE '%' || LOWER(ingredient_name) || '%'`,
-            [ingredient]
-          );
-        }
+        // NO substring/partial matching - removed the old contains match
         
         if (result.rows.length > 0) {
           const row = result.rows[0];
-          matches.push({
-            name: row.ingredient_name,
-            risk_level: row.risk_level,
-            reason: row.reason,
-            matched_on: ingredient
-          });
+          
+          // Avoid duplicates
+          if (!matchedNames.has(row.ingredient_name.toLowerCase())) {
+            matchedNames.add(row.ingredient_name.toLowerCase());
+            matches.push({
+              name: row.ingredient_name,
+              risk_level: row.risk_level,
+              reason: row.reason,
+              matched_on: ingredient
+            });
+          }
         }
       }
+      
+      // Debug: Log matched names count
+      console.log('[DatasetAnalysis] matchedNames count:', matchedNames.size);
       
       // Build response
       const matchedIngredients = matches.map(m => ({
@@ -76,13 +85,21 @@ async function analyzeWithDataset(ingredients) {
       // Collect unique explanations
       const explanations = [...new Set(matches.map(m => m.reason).filter(Boolean))];
       
+      // Calculate summary counts
+      const summary = {
+        safeCount: matches.filter(m => m.risk_level === 'LOW').length,
+        riskyCount: matches.filter(m => m.risk_level === 'MEDIUM').length,
+        restrictedCount: matches.filter(m => m.risk_level === 'HIGH').length
+      };
+      
       // Determine overall risk level
       const riskLevel = determineOverallRiskLevel(matches);
       
       return {
         matched_ingredients: matchedIngredients,
         explanations,
-        risk_level: riskLevel
+        risk_level: riskLevel,
+        summary
       };
       
     } finally {
@@ -131,7 +148,8 @@ async function analyzeTextWithDataset(text) {
   if (datasetResult.matched_ingredients.length === 0) {
     return {
       ...datasetResult,
-      explanations: ['No flagged ingredients found in dataset.']
+      explanations: ['No flagged ingredients found in dataset.'],
+      summary: datasetResult.summary || { safeCount: 0, riskyCount: 0, restrictedCount: 0 }
     };
   }
   
@@ -153,8 +171,26 @@ async function isDatasetAvailable() {
   }
 }
 
+/**
+ * Map dataset risk level to scan_ingredients risk value
+ * LOW -> safe, MEDIUM -> risky, HIGH -> restricted
+ */
+function mapRiskLevelToScanRisk(riskLevel) {
+  switch (riskLevel) {
+    case 'LOW':
+      return 'safe';
+    case 'MEDIUM':
+      return 'risky';
+    case 'HIGH':
+      return 'restricted';
+    default:
+      return 'unknown';
+  }
+}
+
 module.exports = {
   analyzeWithDataset,
   analyzeTextWithDataset,
-  isDatasetAvailable
+  isDatasetAvailable,
+  mapRiskLevelToScanRisk
 };
