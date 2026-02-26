@@ -43,14 +43,15 @@ export default function SignIn() {
                 if (!res.ok) throw new Error(data.error);
 
                 // read name and createdAt saved during registration
-                const savedName = localStorage.getItem('userName')
-                const savedCreatedAt = localStorage.getItem('userCreatedAt')
+                const savedName = localStorage.getItem(`userName_${values.email}`)
+                const savedCreatedAt = localStorage.getItem(`userCreatedAt_${values.email}`)
 
                 login({
                     email: values.email,
                     name: savedName ?? values.email.split('@')[0],
                     createdAt: savedCreatedAt ?? new Date().toISOString()
-                }, data.token);
+                }, data.token)
+
                 navigate('/');
             } catch (err) {
                 setErrors({ general: err.message });

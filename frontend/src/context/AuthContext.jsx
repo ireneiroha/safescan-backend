@@ -14,8 +14,8 @@ export function AuthProvider({ children }) {
             }
             return {
                 email: payload.email,
-                name: localStorage.getItem('userName') ?? payload.email,
-                createdAt: localStorage.getItem('userCreatedAt') ?? new Date().toISOString()
+                name: localStorage.getItem(`userName_${payload.email}`) ?? payload.email.split('@')[0],
+                createdAt: localStorage.getItem(`userCreatedAt_${payload.email}`) ?? new Date().toISOString()
             }
         } catch {
             return null
@@ -24,6 +24,13 @@ export function AuthProvider({ children }) {
 
     const login = (userData, token) => {
         localStorage.setItem('token', token)
+        // store name against the specific email so different users get their own name
+        if (userData.name) {
+            localStorage.setItem(`userName_${userData.email}`, userData.name)
+        }
+        if (userData.createdAt) {
+            localStorage.setItem(`userCreatedAt_${userData.email}`, userData.createdAt)
+        }
         setUser(userData)
     }
 

@@ -55,7 +55,7 @@ export default function SignUp() {
                 const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: values.email })
+                    body: JSON.stringify({ email: values.email, password: values.password })
                 });
                 const loginData = await loginRes.json();
                 if (!loginRes.ok) throw new Error(loginData.error);
