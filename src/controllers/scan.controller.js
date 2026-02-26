@@ -194,16 +194,22 @@ exports.analyzeText = async (req, res, next) => {
     let analysis;
     let source = 'rules';
     let scanId = null;
+    let debug = undefined;
+    const isDev = process.env.NODE_ENV !== 'production';
 
-    // Try dataset first if available
+    // Try dataset first if available - ONLY fall back on error, not on 0 matches
     const datasetAvailable = await isDatasetAvailable();
     if (datasetAvailable) {
       try {
         analysis = await analyzeTextWithDataset(text);
         source = 'dataset';
+        // Include debug info in development mode
+        if (isDev && analysis.debug) {
+          debug = analysis.debug;
+        }
       } catch (datasetError) {
-        // Dataset query failed, fall back to next option
-        console.warn(`Dataset analysis failed, falling back: ${datasetError.message}`);
+        // Dataset query FAILED (error), fall back to next option
+        console.warn(`Dataset analysis failed (error), falling back: ${datasetError.message}`);
         
         // Try AI if configured, otherwise use rules
         if (process.env.AI_SERVICE_URL) {
@@ -310,6 +316,7 @@ exports.analyzeText = async (req, res, next) => {
         explanations: analysis.explanations,
         source: 'dataset',
         summary,
+        debug,
         disclaimer:
           'SafeScan provides informational guidance only and is not medical advice. If you have a reaction or concern, consult a healthcare professional.',
       };

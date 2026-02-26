@@ -1,6 +1,6 @@
 /**
  * Extract the ingredients section from OCR text.
- * Looks for "ingredients", "ingredient list", or "composition" markers
+ * Looks for "ingredients", "ingredient:", or "ingredients:" markers
  * and stops at common product label section markers.
  * 
  * @param {string} ocrText - Full OCR text from label
@@ -11,33 +11,33 @@ function extractIngredientsSection(ocrText) {
     return '';
   }
 
-  // Normalize for searching but preserve original for case
+  // Normalize for searching (lowercase)
   const lowerText = ocrText.toLowerCase();
   
   // Start markers - any of these indicate the beginning of ingredients
   const startMarkers = [
     'ingredients',
-    'ingredient list',
-    'composition'
+    'ingredient:',
+    'ingredients:'
   ];
   
   // Stop markers - these indicate sections that come after ingredients
   const stopMarkers = [
-    'directions',
-    'how to use',
-    'usage',
+    'refrigerate',
+    'storage',
+    'keep refrigerated',
+    'after opening',
+    'packed for',
+    'distributed by',
+    'manufactured',
+    'net wt',
+    'best by',
+    'expiry',
+    'exp',
     'warning',
     'caution',
-    'storage',
-    'keep out',
-    'disclaimer',
-    'manufactured',
-    'distributed',
-    'net wt',
-    'barcode',
-    'batch',
-    'exp',
-    'expiry'
+    'directions',
+    'how to use'
   ];
   
   // Find the first start marker
@@ -57,60 +57,98 @@ function extractIngredientsSection(ocrText) {
     return ocrText;
   }
   
-  // Find where the start marker line/paragraph ends
-  // Look for newline or substantial whitespace after the marker
-  const afterStartRegion = ocrText.slice(startIndex);
-  const lineEndMatch = afterStartRegion.match(/[\n\r]{2,}/);
+  // Find where the start marker ends (move past the marker)
+  const afterStartStart = startIndex + foundStartMarker.length;
   
-  let endIndex;
-  if (lineEndMatch) {
-    // End at first double newline (paragraph break)
-    endIndex = startIndex + lineEndMatch.index;
-  } else {
-    // No paragraph break, take up to 800 chars
-    endIndex = startIndex + 800;
-  }
-  
-  // Now look for stop markers AFTER the start position
+  // Find the first stop marker AFTER the start position
   let stopIndex = -1;
   for (const marker of stopMarkers) {
-    const idx = lowerText.indexOf(marker, startIndex + foundStartMarker.length);
+    const idx = lowerText.indexOf(marker, afterStartStart);
     if (idx !== -1 && (stopIndex === -1 || idx < stopIndex)) {
       stopIndex = idx;
     }
   }
   
-  // If stop marker found, use that as end (but don't go past line break)
-  if (stopIndex !== -1 && stopIndex < endIndex) {
+  // Determine end index
+  let endIndex;
+  if (stopIndex !== -1) {
+    // Stop at the stop marker
     endIndex = stopIndex;
+  } else {
+    // No stop marker found, cap at 1200 chars
+    endIndex = startIndex + 1200;
   }
   
   // Extract the ingredients section
   let ingredientsText = ocrText.slice(startIndex, endIndex).trim();
   
-  // If we ended at a stop marker, include the line containing it
-  if (stopIndex !== -1) {
-    // Find the line containing the stop marker
-    const beforeStop = ocrText.slice(0, stopIndex);
-    const lastNewline = beforeStop.lastIndexOf('\n');
-    const lineStart = lastNewline !== -1 ? lastNewline + 1 : 0;
-    
-    // Check if the stop marker is within our current endIndex on the same line
-    const lineWithStop = beforeStop.slice(lineStart).toLowerCase();
-    for (const marker of stopMarkers) {
-      if (lineWithStop.includes(marker)) {
-        // Include up to the end of that line
-        const lineEnd = ocrText.indexOf('\n', stopIndex);
-        if (lineEnd !== -1 && lineEnd < endIndex + 100) {
-          endIndex = lineEnd;
-          ingredientsText = ocrText.slice(startIndex, endIndex).trim();
-        }
-        break;
-      }
-    }
-  }
-  
   return ingredientsText;
 }
 
+/**
+ * Parse ingredient text into tokens.
+ * Keeps multi-word ingredients intact (e.g., "apple cider vinegar").
+ * 
+ * @param {string} text - Ingredient text
+ * @returns {string[]} - Array of ingredient tokens
+ */
+function parseIngredientTokens(text) {
+  if (!text || typeof text !== 'string') {
+    return [];
+  }
+
+  // Remove leading "INGREDIENTS:" / "Ingredients:" label
+  let cleaned = text.replace(/^(ingredients|ingredient)s?\s*[:\-–]?\s*/i, '');
+  
+  // Replace newlines with spaces
+  cleaned = cleaned.replace(/[\r\n]+/g, ' ');
+  
+  // Remove trailing punctuation: . ) ( : ; 
+  cleaned = cleaned.replace(/[.():;]+$/g, '');
+  cleaned = cleaned.replace(/^[.():;]+/g, '');
+  
+  // Collapse multiple spaces
+  cleaned = cleaned.replace(/\s+/g, ' ');
+  
+  // Trim
+  cleaned = cleaned.trim();
+  
+  // Split primarily by commas and semicolons
+  const parts = cleaned.split(/[,;]+/g);
+  
+  const tokens = [];
+  const seen = new Set();
+  
+  for (let part of parts) {
+    // Trim whitespace
+    part = part.trim();
+    
+    // Remove any remaining punctuation from edges
+    part = part.replace(/^[.():;"']+/, '');
+    part = part.replace(/[.():;"']+$/, '');
+    
+    // Trim again
+    part = part.trim();
+    
+    // Lowercase
+    part = part.toLowerCase();
+    
+    // Ignore tokens shorter than 2 chars
+    if (part.length < 2) {
+      continue;
+    }
+    
+    // Skip duplicates
+    if (seen.has(part)) {
+      continue;
+    }
+    
+    seen.add(part);
+    tokens.push(part);
+  }
+  
+  return tokens;
+}
+
 module.exports = extractIngredientsSection;
+module.exports.parseIngredientTokens = parseIngredientTokens;

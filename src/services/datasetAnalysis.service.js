@@ -1,16 +1,16 @@
 const db = require('../db');
-const normalizeIngredients = require('../utils/ingredientNormalizer');
+const { parseIngredientTokens } = require('../utils/extractIngredientsSection');
 
 /**
  * Query dataset_rows table to find ingredient matches.
- * Supports ONLY exact token match (case-insensitive) on ingredient_name
- * and alias match only if aliases contains a whole-token match (comma-separated).
+ * ONLY exact token match (case-insensitive) on ingredient_name
+ * and alias match only if aliases contains an exact token (comma-separated).
  * 
- * @param {string[]} ingredients - Array of normalized ingredient tokens
+ * @param {string[]} tokens - Array of normalized ingredient tokens
  * @returns {Promise<Object>} - Matched ingredients with risk levels and reasons
  */
-async function analyzeWithDataset(ingredients) {
-  if (!ingredients || ingredients.length === 0) {
+async function analyzeWithDataset(tokens) {
+  if (!tokens || tokens.length === 0) {
     return {
       matched_ingredients: [],
       explanations: [],
@@ -24,14 +24,17 @@ async function analyzeWithDataset(ingredients) {
     
     try {
       // Debug: Log parsed tokens
-      console.log('[DatasetAnalysis] parsedTokens:', ingredients);
+      const isDev = process.env.NODE_ENV !== 'production';
+      if (isDev) {
+        console.log('[DatasetAnalysis] parsedTokens:', tokens);
+      }
       
       const matches = [];
       const matchedNames = new Set();
       
-      for (const ingredient of ingredients) {
+      for (const token of tokens) {
         // Skip empty tokens
-        if (!ingredient || ingredient.trim() === '') {
+        if (!token || token.trim() === '') {
           continue;
         }
         
@@ -40,7 +43,7 @@ async function analyzeWithDataset(ingredients) {
           `SELECT ingredient_name, risk_level, reason, aliases 
            FROM dataset_rows 
            WHERE LOWER(ingredient_name) = LOWER($1)`,
-          [ingredient]
+          [token]
         );
         
         // Second: Alias match only if exact match fails
@@ -50,7 +53,7 @@ async function analyzeWithDataset(ingredients) {
             `SELECT ingredient_name, risk_level, reason, aliases 
              FROM dataset_rows 
              WHERE $1 = ANY(string_to_array(LOWER(aliases), ','))`,
-            [ingredient.toLowerCase()]
+            [token.toLowerCase()]
           );
         }
         
@@ -63,20 +66,24 @@ async function analyzeWithDataset(ingredients) {
           if (!matchedNames.has(row.ingredient_name.toLowerCase())) {
             matchedNames.add(row.ingredient_name.toLowerCase());
             matches.push({
+              input: token,
               name: row.ingredient_name,
               risk_level: row.risk_level,
-              reason: row.reason,
-              matched_on: ingredient
+              reason: row.reason
             });
           }
         }
       }
       
       // Debug: Log matched names count
-      console.log('[DatasetAnalysis] matchedNames count:', matchedNames.size);
+      if (isDev) {
+        console.log('[DatasetAnalysis] matchedNames count:', matchedNames.size);
+        console.log('[DatasetAnalysis] matchedNames:', [...matchedNames]);
+      }
       
-      // Build response
+      // Build response - return canonical name and input token separately
       const matchedIngredients = matches.map(m => ({
+        input: m.input,
         name: m.name,
         risk_level: m.risk_level,
         reason: m.reason
@@ -94,6 +101,16 @@ async function analyzeWithDataset(ingredients) {
       
       // Determine overall risk level
       const riskLevel = determineOverallRiskLevel(matches);
+      
+      // If no matches found, return explicit message
+      if (matchedIngredients.length === 0) {
+        return {
+          matched_ingredients: [],
+          explanations: ['No dataset matches found'],
+          risk_level: 'LOW',
+          summary: { safeCount: 0, riskyCount: 0, restrictedCount: 0 }
+        };
+      }
       
       return {
         matched_ingredients: matchedIngredients,
@@ -138,18 +155,29 @@ function determineOverallRiskLevel(matches) {
  * @returns {Promise<Object>} - Analysis result
  */
 async function analyzeTextWithDataset(text) {
-  // Normalize the input text into ingredient tokens
-  const ingredients = normalizeIngredients(text);
+  // Parse input text into ingredient tokens using improved tokenizer
+  const tokens = parseIngredientTokens(text);
+  
+  // Debug: Log parsed tokens in dev mode
+  const isDev = process.env.NODE_ENV !== 'production';
+  const debug = isDev ? { tokens: tokens, matched_names: [] } : undefined;
   
   // Query dataset for matches
-  const datasetResult = await analyzeWithDataset(ingredients);
+  const datasetResult = await analyzeWithDataset(tokens);
   
-  // If no matches found, return default low risk
+  // Add debug info in development mode
+  if (isDev) {
+    datasetResult.debug = {
+      tokens: tokens,
+      matched_names: datasetResult.matched_ingredients.map(m => m.name)
+    };
+  }
+  
+  // If no matches found, return default low risk with explicit message
   if (datasetResult.matched_ingredients.length === 0) {
     return {
       ...datasetResult,
-      explanations: ['No flagged ingredients found in dataset.'],
-      summary: datasetResult.summary || { safeCount: 0, riskyCount: 0, restrictedCount: 0 }
+      explanations: ['No dataset matches found']
     };
   }
   
@@ -192,5 +220,6 @@ module.exports = {
   analyzeWithDataset,
   analyzeTextWithDataset,
   isDatasetAvailable,
-  mapRiskLevelToScanRisk
+  mapRiskLevelToScanRisk,
+  parseIngredientTokens
 };
