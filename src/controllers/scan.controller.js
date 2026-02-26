@@ -2,6 +2,7 @@ const ocr = require('../services/ocr.service');
 const analyzeRuleBased = require('../services/ingredientAnalysis.service');
 const { analyzeWithAI } = require('../services/aiModel.service');
 const { analyzeTextWithDataset, isDatasetAvailable, mapRiskLevelToScanRisk } = require('../services/datasetAnalysis.service');
+const extractIngredientsSection = require('../utils/extractIngredientsSection');
 const db = require('../db');
 
 /**
@@ -97,7 +98,11 @@ exports.scanImage = async (req, res) => {
       });
     }
 
-    const analysis = analyzeRuleBased(extractedText);
+    // Extract ingredients section from OCR text
+    const ingredientsText = extractIngredientsSection(extractedText);
+
+    // Analyze the extracted ingredients section (or fallback to full text if extraction failed)
+    const analysis = analyzeRuleBased(ingredientsText);
 
     // Get user ID if authenticated (optional)
     const userId = req.user ? req.user.id : null;
@@ -146,6 +151,7 @@ exports.scanImage = async (req, res) => {
     res.json({
       scanId,
       extractedText,
+      ingredientsText,
       productCategory,
       ...analysis,
       disclaimer:
