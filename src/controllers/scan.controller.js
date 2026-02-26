@@ -29,6 +29,13 @@ exports.scanImage = async (req, res) => {
       console.error('OCR processing error:', ocrError.message);
       
       // Handle specific OCR error codes
+      if (ocrError.code === 'OCR_DISABLED') {
+        return res.status(503).json({
+          error: 'OCR service unavailable in production environment',
+          requestId: req.id,
+        });
+      }
+      
       if (ocrError.code === 'OCR_NOT_CONFIGURED') {
         return res.status(503).json({
           error: 'OCR service unavailable',

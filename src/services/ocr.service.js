@@ -1,5 +1,8 @@
 const { createWorker } = require('tesseract.js');
 
+// Check if running in production environment
+const isProduction = process.env.RENDER === 'true' || process.env.NODE_ENV === 'production';
+
 // Singleton worker to avoid re-initializing on every request (major performance win)
 let worker = null;
 let initializing = null;
@@ -14,6 +17,11 @@ class OCRError extends Error {
 }
 
 async function getWorker() {
+  // Disable OCR in production environment
+  if (isProduction) {
+    throw new OCRError('OCR disabled in production environment', 'OCR_DISABLED');
+  }
+
   if (worker) return worker;
   if (initializing) return initializing;
 
@@ -46,6 +54,11 @@ async function getWorker() {
  * Throws controlled errors with codes instead of raw errors.
  */
 module.exports = async function extractTextFromImage(imageBuffer) {
+  // Check for production environment first
+  if (isProduction) {
+    throw new OCRError('OCR disabled in production environment', 'OCR_DISABLED');
+  }
+
   if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) {
     throw new OCRError('Invalid image buffer', 'OCR_INVALID_INPUT');
   }

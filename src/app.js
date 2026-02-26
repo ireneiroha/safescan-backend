@@ -12,6 +12,9 @@ const safeLogger = require('./utils/safeLogger');
 
 const app = express();
 
+// Trust proxy for rate limiting behind Render proxy
+app.set('trust proxy', 1);
+
 // ========== CORS CONFIGURATION (Applied FIRST - before all routes) ==========
 const allowedOrigins = [
   'http://localhost:5173',
