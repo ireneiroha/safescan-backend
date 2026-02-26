@@ -10,16 +10,46 @@ const db = require('../db');
  * Optional: productCategory (string)
  * Returns extractedText + analysis.
  */
-exports.scanImage = async (req, res, next) => {
+exports.scanImage = async (req, res) => {
   const client = await db.pool.connect();
+  
   try {
+    // Check if image file is present
     if (!req.file) {
-      const err = new Error('Image is required. Please take a photo or upload a JPG/PNG.');
-      err.statusCode = 400;
-      throw err;
+      return res.status(400).json({
+        error: "Image file is required. Use multipart/form-data with key 'image'.",
+        requestId: req.id,
+      });
     }
 
-    const extractedText = await ocr(req.file.buffer);
+    let extractedText;
+    try {
+      extractedText = await ocr(req.file.buffer);
+    } catch (ocrError) {
+      console.error('OCR processing error:', ocrError.message);
+      
+      // Handle specific OCR error codes
+      if (ocrError.code === 'OCR_NOT_CONFIGURED') {
+        return res.status(503).json({
+          error: 'OCR service unavailable',
+          requestId: req.id,
+        });
+      }
+      
+      if (ocrError.code === 'OCR_FAILED') {
+        return res.status(503).json({
+          error: 'OCR service unavailable',
+          requestId: req.id,
+        });
+      }
+      
+      // Generic OCR failure
+      return res.status(500).json({
+        error: 'Scan processing failed',
+        details: 'OCR extraction failed',
+        requestId: req.id,
+      });
+    }
 
     // If OCR returns empty/garbage, return a friendly message
     if (!extractedText || extractedText.length < 3) {
@@ -85,7 +115,14 @@ exports.scanImage = async (req, res, next) => {
     });
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});
-    next(e);
+    console.error('Scan image error:', e.message);
+    
+    // Return 500 with safe message - never crash the server
+    return res.status(500).json({
+      error: 'Scan processing failed',
+      details: 'An unexpected error occurred',
+      requestId: req.id,
+    });
   } finally {
     client.release();
   }
@@ -96,6 +133,7 @@ exports.scanImage = async (req, res, next) => {
  * JSON: { text: "..." }
  * Use this after the user edits OCR text on the frontend.
  * Tries dataset first, then AI, then falls back to rule-based analysis.
+ * NOTE: Do NOT change /api/scan/analyze logic
  */
 exports.analyzeText = async (req, res, next) => {
   const client = await db.pool.connect();
