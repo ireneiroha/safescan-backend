@@ -15,6 +15,7 @@ import Settings from './pages/Settings'
 import ScanLanding from './pages/ScanLanding'
 import Landing from './pages/Landing'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import About from './pages/About'
 import ConfirmIngredients from './components/camera/ConfirmIngredients'
 import Analyzing from './components/camera/Analyzing'
 
@@ -49,6 +50,7 @@ function AppLayout() {
           } /> */}
           <Route path='/settings' element={<Settings />} />
           <Route path='/privacy' element={<PrivacyPolicy />} />
+          <Route path='/about' element={<About />} />
           <Route path='/confirm' element={<ConfirmIngredients />} />
           <Route path='/analyzing' element={<Analyzing />} />
         </Routes>
