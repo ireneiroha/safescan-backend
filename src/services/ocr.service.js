@@ -19,7 +19,7 @@ class OCRError extends Error {
 async function getWorker() {
   // Disable OCR in production environment
   if (isProduction) {
-    throw new OCRError('OCR disabled in production environment', 'OCR_DISABLED');
+    throw new OCRError('OCR disabled on free Render deployment', 'OCR_DISABLED');
   }
 
   if (worker) return worker;
@@ -54,9 +54,11 @@ async function getWorker() {
  * Throws controlled errors with codes instead of raw errors.
  */
 module.exports = async function extractTextFromImage(imageBuffer) {
-  // Check for production environment first
-  if (isProduction) {
-    throw new OCRError('OCR disabled in production environment', 'OCR_DISABLED');
+  // Disable OCR when running on Render or in production
+  if (process.env.RENDER === 'true' || process.env.NODE_ENV === 'production') {
+    const err = new Error('OCR disabled on free Render deployment');
+    err.code = 'OCR_DISABLED';
+    throw err;
   }
 
   if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) {

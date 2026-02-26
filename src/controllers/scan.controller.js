@@ -31,8 +31,8 @@ exports.scanImage = async (req, res) => {
       // Handle specific OCR error codes
       if (ocrError.code === 'OCR_DISABLED') {
         return res.status(503).json({
-          error: 'OCR service unavailable in production environment',
-          requestId: req.id,
+          error: 'OCR unavailable on this deployment',
+          details: 'Image OCR is disabled on Render free tier. Use /api/scan/analyze (text) or run locally for image OCR.'
         });
       }
       
