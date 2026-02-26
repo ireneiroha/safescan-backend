@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import SafeScanLogo from '../assets/logo/safescan-logo.png'
 
 // Hook: fires callback when element enters viewport
 function useFadeIn(delay = 0) {
@@ -101,7 +100,6 @@ export default function About() {
 
                 {/* Hero */}
                 <div ref={heroRef} className="opacity-0 text-center mb-12">
-                    <img src={SafeScanLogo} alt="SafeScan" className="h-9 mx-auto mb-6" />
                     <h1 className="text-4xl font-black text-primary leading-tight mb-2">
                         Welcome to SafeScan
                     </h1>
