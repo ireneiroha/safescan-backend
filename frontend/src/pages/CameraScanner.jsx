@@ -69,6 +69,22 @@ export default function CameraScanner({ onClose, productCategory }) {
         }
     }
 
+    // const sendToBackend = async () => {
+    //     const token = localStorage.getItem('token')
+    //     if (!token) {
+    //         setError('You need to sign in to scan products. Please log in and try again.')
+    //         return
+    //     }
+    //     // OCR not available on Render free tier — go straight to confirm
+    //     // User will type/paste ingredients manually
+    //     navigate('/confirm', {
+    //         state: {
+    //             extractedText: '',
+    //             productCategory,
+    //         }
+    //     })
+    // }
+
     const handleCapture = () => {
         if (!videoRef.current || !canvasRef.current) return
         const video = videoRef.current
@@ -81,6 +97,9 @@ export default function CameraScanner({ onClose, productCategory }) {
             const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' })
             sendToBackend(file)
         }, 'image/jpeg')
+        // canvas.toBlob(() => {
+        //     sendToBackend()
+        // }, 'image/jpeg')
     }
 
     const handleUploadDone = (file) => {
