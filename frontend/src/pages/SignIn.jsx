@@ -52,7 +52,7 @@ export default function SignIn() {
                     createdAt: savedCreatedAt ?? new Date().toISOString()
                 }, data.token)
 
-                navigate('/');
+                navigate('/scan-home');
             } catch (err) {
                 setErrors({ general: err.message });
                 setLoading(false);

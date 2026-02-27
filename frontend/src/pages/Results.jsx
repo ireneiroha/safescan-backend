@@ -50,15 +50,72 @@ const RISK_CONFIG = {
 }
 
 function transformResults(data) {
-    return (data.results ?? data.matched_ingredients ?? []).map((item, index) => ({
-        id: index + 1,
-        name: item.ingredient ?? item.name,
-        safety: item.status === 'Restricted' || item.risk_level === 'HIGH' ? 'restricted'
-            : item.status === 'Risky' || item.risk_level === 'MEDIUM' ? 'risky'
-            : 'safe',
-        description: item.explanation ?? item.reason ?? '',
-    }))
+    const seen = new Set()
+    return (data.results ?? data.matched_ingredients ?? [])
+        .filter((item) => {
+            const name = (item.ingredient ?? item.name ?? '').toLowerCase()
+            if (seen.has(name)) return false
+            seen.add(name)
+            return true
+        })
+        .map((item, index) => ({
+            id: index + 1,
+            name: item.ingredient ?? item.name,
+            safety: item.status === 'Restricted' || item.risk_level === 'HIGH' ? 'restricted'
+                : item.status === 'Risky' || item.risk_level === 'MEDIUM' ? 'risky'
+                    : item.status === 'Unknown' || item.status === 'unknown' ? 'unknown'
+                        : 'safe',
+            description: item.explanation ?? item.reason ?? '',
+        }))
+
 }
+
+// function transformResults(data) {
+//     const seen = new Set()
+//     const matched = (data.results ?? data.matched_ingredients ?? [])
+//         .filter((item) => {
+//             const name = (item.ingredient ?? item.name ?? '').toLowerCase()
+//             if (seen.has(name)) return false
+//             seen.add(name)
+//             return true
+//         })
+//         .map((item, index) => ({
+//             id: index + 1,
+//             name: item.ingredient ?? item.name,
+//             safety: item.risk_level === 'HIGH' ? 'restricted'
+//                 : item.risk_level === 'MEDIUM' ? 'risky'
+//                 : item.risk_level === 'LOW' ? 'safe'
+//                 : item.status === 'Restricted' ? 'restricted'
+//                 : item.status === 'Risky' ? 'risky'
+//                 : item.status === 'Unknown' || item.status === 'unknown' ? 'unknown'
+//                 : 'safe',
+//             description: item.explanation ?? item.reason ?? data.explanations?.[index] ?? '',
+//         }))
+
+//     // Add unmatched ingredients as unknown
+//     const matchedNames = new Set(matched.map(i => i.name.toLowerCase()))
+//     const extractedText = data.extractedText ?? ''
+//     const ingredientsSection = extractedText.match(/ingredients[:\s]*/i)
+//         ? extractedText.slice(extractedText.search(/ingredients[:\s]*/i)).split(/directions:|warnings?:|precautions:|how to use:|caution:|store/i)[0]
+//         : extractedText
+
+//     const allIngredients = ingredientsSection
+//         .replace(/ingredients[:\s]*/i, '')
+//         .split(/,|\n/)
+//         .map(s => s.trim())
+//         .filter(s => s.length > 2 && s.length < 60 && !/\d{4}/.test(s))
+
+//     const unknown = allIngredients
+//         .filter(name => !matchedNames.has(name.toLowerCase()))
+//         .map((name, i) => ({
+//             id: matched.length + i + 1,
+//             name,
+//             safety: 'unknown',
+//             description: '',
+//         }))
+
+//     return [...matched, ...unknown]
+// }
 
 export default function Results() {
     const { id } = useParams()
@@ -145,6 +202,14 @@ export default function Results() {
                                 <SummaryBadge count={safeCount} label="Safe" dotClass="bg-[#43B75D]" badgeClass="bg-[#ECF8EF] text-[#43B75D] border-[#43B75D]" />
                                 <SummaryBadge count={riskyCount} label="Risky" dotClass="bg-risky" badgeClass="bg-[#FFF7E6] text-risky border-risky" />
                                 <SummaryBadge count={restrictedCount} label="Restricted" dotClass="bg-danger" badgeClass="bg-[#FDECEC] text-danger border-danger" />
+                                <SummaryBadge count={summary.unknown ?? ingredients.filter(i => i.safety === 'unknown').length} label="Unknown" dotClass="bg-gray-400" badgeClass="bg-gray-100 text-gray-500 border-gray-300"
+                                />
+                                {/* <SummaryBadge
+                                    count={ingredients.filter(i => i.safety === 'unknown').length}
+                                    label="Unknown"
+                                    dotClass="bg-gray-400"
+                                    badgeClass="bg-gray-100 text-gray-500 border-gray-300"
+                                /> */}
                             </div>
                         </div>
 

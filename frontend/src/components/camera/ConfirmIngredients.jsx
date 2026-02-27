@@ -4,11 +4,24 @@ import { useNavigate, useLocation } from 'react-router-dom'
 export default function ConfirmIngredients() {
     const navigate = useNavigate()
     const location = useLocation()
-    const extractedText = location.state?.extractedText ?? ''
     const scanId = location.state?.scanId ?? null
     const productCategory = location.state?.productCategory ?? ''
-
+    
+    const extractedText = extractIngredients(location.state?.extractedText ?? '')
     const [ingredients, setIngredients] = useState(extractedText)
+
+    function extractIngredients(text) {
+        if (!text) return ''
+        // Find where ingredients section starts
+        const match = text.match(/ingredients[:\s]*/i)
+        if (!match) return text // no match, return as is
+        let extracted = text.slice(match.index + match[0].length)
+        // Cut off at next section header
+        const stopWords = /directions:|warnings?:|how to use:|caution:|note:|storage:|manufactured/i
+        const stop = extracted.search(stopWords)
+        if (stop !== -1) extracted = extracted.slice(0, stop)
+        return extracted.trim()
+    }
 
     const handleContinue = () => {
         if (!ingredients.trim()) return
