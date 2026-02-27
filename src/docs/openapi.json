@@ -39,6 +39,10 @@
     {
       "name": "Privacy",
       "description": "Privacy policy and legal information"
+    },
+    {
+      "name": "AI Action",
+      "description": "AI-powered ingredient explanation and classification"
     }
   ],
   "paths": {
@@ -105,7 +109,7 @@
                   },
                   "consent_given": {
                     "type": "boolean",
-                    "description": "User must agree to the Privacy Policy and Disclaimer: 'I have read and agree to the SafeScan Privacy Policy and Disclaimer. I understand that my data (name and email) will be used for account creation and service delivery, and that SafeScan is for informational purposes only.'",
+                    "description": "User must agree to the Privacy Policy and Disclaimer",
                     "example": true
                   }
                 }
@@ -202,7 +206,7 @@
     "/api/scan": {
       "post": {
         "tags": ["Scan"],
-        "summary": "Scan an ingredient label image (OCR → analysis)",
+        "summary": "Scan an ingredient label image (OCR -> analysis)",
         "description": "Upload a JPG/PNG image of an ingredient label. Returns extracted text and classified ingredients.",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
@@ -348,6 +352,45 @@
           }
         }
       }
+    },
+    "/api/aiAction/explain": {
+      "post": {
+        "tags": ["AI Action"],
+        "summary": "Explain selected ingredients using AI",
+        "description": "Explain and classify cosmetic ingredients using AI. This endpoint is called after scanning when user clicks 'Ask AI'. It provides AI explanations/classifications for ingredients not covered by the dataset.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIExplainRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI explanation results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AIExplainResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid ingredients"
+          },
+          "503": {
+            "description": "AI service unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -367,6 +410,39 @@
           "effective_date": { "type": "string", "example": "TBD" },
           "privacy_notice": { "type": "string" },
           "disclaimer": { "type": "string" }
+        }
+      },
+      "AIExplainRequest": {
+        "type": "object",
+        "required": ["ingredients"],
+        "properties": {
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 30,
+            "example": ["Water", "Glycerin", "Paraben", "Fragrance"]
+          }
+        }
+      },
+      "AIExplainResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Paraben"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Safe", "Risky", "Restricted"],
+            "example": "Risky"
+          },
+          "explanation": {
+            "type": "string",
+            "example": "Parabens are preservatives used in cosmetics. Some studies suggest they may disrupt hormones at high concentrations, though they are considered safe at low levels."
+          }
         }
       },
       "AnalyzeRequest": {

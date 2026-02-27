@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const requireAuth = require('../middlewares/requireAuth');
+const rateLimit = require('express-rate-limit');
 
 router.use('/health', require('./health.routes'));
 
@@ -24,5 +25,17 @@ router.use('/auth', require('./auth.routes'));
 
 // Protected user endpoints
 router.use('/user', requireAuth, require('./user.routes'));
+
+// Protected AI Action endpoint with rate limiting (20 req / 5 min per IP)
+const aiLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  limit: 20, // 20 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+  trustProxy: 1
+});
+
+router.use('/aiAction', aiLimiter, requireAuth, require('./ai.routes'));
 
 module.exports = router;
