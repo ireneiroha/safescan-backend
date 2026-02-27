@@ -353,6 +353,28 @@
         }
       }
     },
+"/api/aiAction/health": {
+      "get": {
+        "tags": ["AI Action"],
+        "summary": "AI service health check",
+        "description": "Check the health status of the AI service. Returns the provider and model being used.",
+        "responses": {
+          "200": {
+            "description": "AI service health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIHealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AI service error"
+          }
+        }
+      }
+    },
     "/api/aiAction/explain": {
       "post": {
         "tags": ["AI Action"],
@@ -427,7 +449,7 @@
           }
         }
       },
-      "AIExplainResponse": {
+"AIExplainResponse": {
         "type": "object",
         "properties": {
           "name": {
@@ -442,6 +464,24 @@
           "explanation": {
             "type": "string",
             "example": "Parabens are preservatives used in cosmetics. Some studies suggest they may disrupt hormones at high concentrations, though they are considered safe at low levels."
+          }
+        }
+      },
+      "AIHealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["available", "missing_api_key"],
+            "example": "available"
+          },
+          "provider": {
+            "type": "string",
+            "example": "openai"
+          },
+          "model": {
+            "type": "string",
+            "example": "gpt-4o-mini"
           }
         }
       },

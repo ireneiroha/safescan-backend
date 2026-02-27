@@ -3,9 +3,37 @@ const axios = require('axios');
 /**
  * AI Service for explaining ingredients using external AI provider
  * Supports OpenAI and other providers via HTTP API
+ * 
+ * Configuration (from environment variables):
+ * - AI_API_KEY (required): API key for AI provider
+ * - AI_PROVIDER (default "openai"): AI provider name
+ * - AI_MODEL (default "gpt-4o-mini"): Model to use
  */
 
 const TIMEOUT_MS = 20000; // 20 seconds timeout
+
+// Get API key - ONLY from AI_API_KEY (no fallback)
+function getApiKey() {
+  return process.env.AI_API_KEY;
+}
+
+// Check if API key is configured
+function isApiKeyConfigured() {
+  return !!process.env.AI_API_KEY;
+}
+
+// Get provider configuration and log it (never log the API key value)
+function getProviderConfig() {
+  const provider = process.env.AI_PROVIDER || 'openai';
+  const apiKey = getApiKey();
+  const model = process.env.AI_MODEL || 'gpt-4o-mini';
+  
+  // Log provider, model, and whether API key is set (NEVER log the key value)
+  const apiKeyStatus = isApiKeyConfigured() ? 'set' : 'not set';
+  console.log(`[AI Service] Provider: ${provider}, Model: ${model}, AI_API_KEY: ${apiKeyStatus}`);
+  
+  return { provider, apiKey, model };
+}
 
 /**
  * Explain ingredients using AI
@@ -13,12 +41,10 @@ const TIMEOUT_MS = 20000; // 20 seconds timeout
  * @returns {Promise<Array>} - Array of { name, status, explanation }
  */
 async function explainIngredients(ingredients) {
-  const provider = process.env.AI_PROVIDER || 'openai';
-  const apiKey = process.env.AI_API_KEY;
-  const model = process.env.AI_MODEL || 'gpt-4o-mini';
+  const { provider, apiKey, model } = getProviderConfig();
 
   if (!apiKey) {
-    throw new Error('AI_API_KEY is not configured');
+    throw new Error('AI not configured. Missing AI_API_KEY');
   }
 
   const prompt = buildPrompt(ingredients);
@@ -29,6 +55,20 @@ async function explainIngredients(ingredients) {
     console.error('AI explain error:', error.message);
     throw error;
   }
+}
+
+/**
+ * Health check for AI service
+ * @returns {Promise<{status: string, provider: string, model: string}>}
+ */
+async function checkHealth() {
+  const { provider, apiKey, model } = getProviderConfig();
+  
+  return {
+    status: apiKey ? 'available' : 'missing_api_key',
+    provider: provider,
+    model: model
+  };
 }
 
 /**
@@ -203,5 +243,6 @@ function normalizeStatus(status) {
 
 module.exports = {
   explainIngredients,
+  checkHealth,
   TIMEOUT_MS
 };

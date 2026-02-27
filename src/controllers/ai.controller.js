@@ -1,4 +1,19 @@
-const { explainIngredients } = require('../services/aiExplain.service');
+const { explainIngredients, checkHealth } = require('../services/aiExplain.service');
+
+/**
+ * GET /api/aiAction/health
+ * Health check for AI service
+ * Public endpoint (no auth required)
+ */
+exports.health = async (req, res) => {
+  try {
+    const healthStatus = await checkHealth();
+    res.json(healthStatus);
+  } catch (error) {
+    console.error('AI health check error:', error.message);
+    res.status(503).json({ status: 'error', message: error.message });
+  }
+};
 
 /**
  * POST /api/aiAction/explain
@@ -29,9 +44,9 @@ exports.explainIngredients = async (req, res) => {
     console.error('AI explain controller error:', error.message);
 
     // Check if it's a configuration error
-    if (error.message.includes('not configured')) {
+    if (error.message.includes('not configured') || error.message.includes('Missing AI_API_KEY')) {
       return res.status(503).json({
-        error: 'AI service unavailable'
+        error: 'AI not configured. Missing AI_API_KEY'
       });
     }
 

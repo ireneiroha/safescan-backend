@@ -36,6 +36,9 @@ const aiLimiter = rateLimit({
   trustProxy: 1
 });
 
-router.use('/aiAction', aiLimiter, requireAuth, require('./ai.routes'));
+// AI routes: /api/aiAction
+// - /health: public (no auth, no rate limiting)
+// - /explain: protected (requires JWT + rate limiting, handled in route)
+router.use('/aiAction', aiLimiter, require('./ai.routes'));
 
 module.exports = router;

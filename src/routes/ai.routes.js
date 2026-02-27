@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const aiController = require('../controllers/ai.controller');
+const requireAuth = require('../middlewares/requireAuth');
 const { validate } = require('../middlewares/validation');
 
 // Validation schema for explainIngredients
@@ -51,7 +52,10 @@ const validateIngredients = (req, res, next) => {
   next();
 };
 
-// POST /explain - Explain ingredients using AI
-router.post('/explain', validateIngredients, aiController.explainIngredients);
+// GET /health - Health check for AI service (public, no auth required)
+router.get('/health', aiController.health);
+
+// POST /explain - Explain ingredients using AI (protected, requires auth)
+router.post('/explain', requireAuth, validateIngredients, aiController.explainIngredients);
 
 module.exports = router;
