@@ -3,6 +3,8 @@
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
+  password_hash TEXT,
+  name TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
@@ -11,6 +13,7 @@ CREATE TABLE IF NOT EXISTS scans (
   user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   image_path TEXT,
   ocr_text TEXT,
+  summary JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 

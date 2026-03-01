@@ -42,16 +42,19 @@ export default function SignIn() {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
 
-                // read name and createdAt saved during registration
-                const savedName = localStorage.getItem('userName')
-                const savedCreatedAt = localStorage.getItem('userCreatedAt')
+                const name = data.user?.name
+                    ?? localStorage.getItem(`userName_${values.email}`)
+                    ?? values.email.split('@')[0];
+                const createdAt = data.user?.createdAt
+                    ?? localStorage.getItem(`userCreatedAt_${values.email}`)
+                    ?? new Date().toISOString();
 
-                login({
-                    email: values.email,
-                    name: savedName ?? values.email.split('@')[0],
-                    createdAt: savedCreatedAt ?? new Date().toISOString()
-                }, data.token);
-                navigate('/');
+                // Keep localStorage in sync for offline/token-decode fallback
+                localStorage.setItem(`userName_${values.email}`, name);
+                localStorage.setItem(`userCreatedAt_${values.email}`, createdAt);
+
+                login({ email: values.email, name, createdAt }, data.token)
+                navigate('/scan-home');
             } catch (err) {
                 setErrors({ general: err.message });
                 setLoading(false);

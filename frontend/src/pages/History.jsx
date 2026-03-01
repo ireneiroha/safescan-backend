@@ -1,36 +1,47 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import EmptyHistory from '../components/history/EmptyHistory'
 import HistoryCard from '../components/history/HistoryCard'
 
-const MOCK_HISTORY = [
-    { id: 1, productName: 'Luxe Hydra Scrum', scannedAt: '2026-02-24T14:45:00Z', ingredientCount: 12, safety: 'safe' },
-    { id: 2, productName: 'Brightening Toner', scannedAt: '2026-02-23T10:20:00Z', ingredientCount: 8, safety: 'risky' },
-    { id: 3, productName: 'Nourishing Night Cream', scannedAt: '2026-02-10T09:00:00Z', ingredientCount: 15, safety: 'safe' },
-    { id: 4, productName: 'Clear Skin Cleanser', scannedAt: '2026-02-08T16:30:00Z', ingredientCount: 10, safety: 'restricted' },
-]
-
 export default function History() {
-    const [history, setHistory] = useState(MOCK_HISTORY)
-    const [loading, setLoading] = useState(false)
+    const [history, setHistory] = useState([])
+    const [loading, setLoading] = useState(true)
 
-    // useEffect(() => {
-    //   const fetchHistory = async () => {
-    //     setLoading(true)
-    //     try {
-    //       const token = localStorage.getItem('token')
-    //       const res = await fetch('/api/scan-history', {
-    //         headers: { Authorization: `Bearer ${token}` }
-    //       })
-    //       const data = await res.json()
-    //       setHistory(data)
-    //     } catch (err) {
-    //       console.error('Failed to fetch history:', err)
-    //     } finally {
-    //       setLoading(false)
-    //     }
-    //   }
-    //   fetchHistory()
-    // }, [])
+    useEffect(() => {
+        const fetchHistory = async () => {
+            setLoading(true)
+            try {
+                const token = localStorage.getItem('token')
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/scan`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                const data = await res.json()
+                if (!res.ok) throw new Error(data.error ?? 'Failed to fetch history')
+
+                const transformed = (data.data ?? []).map((item) => {
+                    const s = item.summary ?? {}
+                    const safety = s.restrictedCount > 0 ? 'restricted'
+                        : s.riskyCount > 0 ? 'risky'
+                        : 'safe'
+                    const ingredientCount = s.safeCount + s.riskyCount + s.restrictedCount + (s.unknownCount ?? 0)
+
+                    return {
+                        id: item.id,
+                        productName: item.productCategory ?? 'Scanned Product',
+                        scannedAt: item.createdAt,
+                        ingredientCount,
+                        safety,
+                    }
+                })
+                setHistory(transformed)
+            } catch (err) {
+                console.error('Failed to fetch history:', err)
+                setHistory([])
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchHistory()
+    }, [])
 
     return (
         <div className="mx-auto max-w-md md:max-w-[1440px] px-4 py-6 md:py-10 md:px-10">

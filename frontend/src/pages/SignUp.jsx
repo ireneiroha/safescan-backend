@@ -43,28 +43,21 @@ export default function SignUp() {
                     body: JSON.stringify({
                         email: values.email,
                         password: values.password,
-                        consent_given: true
+                        name: values.fullName,
                     })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
 
-                localStorage.setItem('userName', values.fullName)
-                localStorage.setItem('userCreatedAt', data.user.createdAt)
-
-                const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: values.email })
-                });
-                const loginData = await loginRes.json();
-                if (!loginRes.ok) throw new Error(loginData.error);
+                const createdAt = data.user?.createdAt ?? new Date().toISOString();
+                localStorage.setItem(`userName_${values.email}`, values.fullName);
+                localStorage.setItem(`userCreatedAt_${values.email}`, createdAt);
 
                 login({
                     email: values.email,
                     name: values.fullName,
-                    createdAt: data.user.createdAt
-                }, loginData.token);
+                    createdAt,
+                }, data.token);
                 navigate('/');
             } catch (err) {
                 setErrors({ general: err.message });
