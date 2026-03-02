@@ -34,11 +34,17 @@ export default function CameraScanner({ onClose, productCategory }) {
 
     const sendToBackend = async (file) => {
         const token = localStorage.getItem('token')
+
+        // guest scan limit — 1 free scan only
         if (!token) {
-            setError('You need to sign in to scan products. Please log in and try again.')
-            setScanning(false)
-            return
+            const guestScans = parseInt(localStorage.getItem('guestScanCount') ?? '0')
+            if (guestScans >= 1) {
+                setError('You have used your free guest scan. Please sign in to continue scanning.')
+                setScanning(false)
+                return
+            }
         }
+
         setScanning(true)
         setError(null)
         try {
@@ -55,7 +61,7 @@ export default function CameraScanner({ onClose, productCategory }) {
             const data = text ? JSON.parse(text) : {}
             if (!res.ok) throw new Error(data.error ?? `Server error (${res.status})`)
 
-            // go to confirm page with extracted text pre-filled
+            localStorage.setItem('guestScanCount', '1')
             navigate('/confirm', {
                 state: {
                     extractedText: data.extractedText ?? '',
@@ -69,22 +75,6 @@ export default function CameraScanner({ onClose, productCategory }) {
         }
     }
 
-    // const sendToBackend = async () => {
-    //     const token = localStorage.getItem('token')
-    //     if (!token) {
-    //         setError('You need to sign in to scan products. Please log in and try again.')
-    //         return
-    //     }
-    //     // OCR not available on Render free tier — go straight to confirm
-    //     // User will type/paste ingredients manually
-    //     navigate('/confirm', {
-    //         state: {
-    //             extractedText: '',
-    //             productCategory,
-    //         }
-    //     })
-    // }
-
     const handleCapture = () => {
         if (!videoRef.current || !canvasRef.current) return
         const video = videoRef.current
@@ -97,9 +87,6 @@ export default function CameraScanner({ onClose, productCategory }) {
             const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' })
             sendToBackend(file)
         }, 'image/jpeg')
-        // canvas.toBlob(() => {
-        //     sendToBackend()
-        // }, 'image/jpeg')
     }
 
     const handleUploadDone = (file) => {
@@ -113,12 +100,14 @@ export default function CameraScanner({ onClose, productCategory }) {
         onClose()
     }
 
+    const isGuestLimitError = error?.includes('sign in')
+
     return (
         <div className="flex flex-col" style={{ height: 'calc(100vh - 72px)' }}>
 
             <div className="flex-1 relative overflow-hidden bg-black">
                 {!cameraActive && (
-                    <img src={scanGuideImg} alt="Scan guide" className="absolute inset-0 w-full h-full object-contain opacity-90"
+                    <img src={scanGuideImg} alt="Scan guide" className="absolute inset-0 w-full h-full object-cover md:object-contain opacity-90"
                         style={{ transform: 'scale(0.82)', transformOrigin: 'center' }} />
                 )}
                 <video ref={videoRef} autoPlay playsInline muted
@@ -135,9 +124,19 @@ export default function CameraScanner({ onClose, productCategory }) {
                     </div>
                 )}
 
+                {/* Error message */}
                 {error && (
                     <div className="absolute top-4 left-4 right-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 z-10">
                         <p className="text-sm text-danger font-medium">{error}</p>
+                        {isGuestLimitError && (
+                            <button
+                                type="button"
+                                onClick={() => navigate('/login')}
+                                className="mt-2 text-sm font-bold text-primary hover:underline"
+                            >
+                                Sign In →
+                            </button>
+                        )}
                     </div>
                 )}
 

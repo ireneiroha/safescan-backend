@@ -24,6 +24,7 @@ export function AuthProvider({ children }) {
 
     const login = (userData, token) => {
         localStorage.setItem('token', token)
+        localStorage.removeItem('guestScanCount') // reset on login
         // store name against the specific email so different users get their own name
         if (userData.name) {
             localStorage.setItem(`userName_${userData.email}`, userData.name)
