@@ -9,11 +9,7 @@ async function getWorker() {
   if (initializing) return initializing;
 
   initializing = (async () => {
-    const w = await createWorker({
-      logger: () => {}, // silence verbose logs
-    });
-    await w.loadLanguage('eng');
-    await w.initialize('eng');
+    const w = await createWorker('eng');
 
     // You can tune OCR params here if needed.
     // await w.setParameters({ tessedit_pageseg_mode: 6 });

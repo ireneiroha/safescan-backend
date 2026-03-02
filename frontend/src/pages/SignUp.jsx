@@ -49,15 +49,22 @@ export default function SignUp() {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
 
-                const createdAt = data.user?.createdAt ?? new Date().toISOString();
-                localStorage.setItem(`userName_${values.email}`, values.fullName);
-                localStorage.setItem(`userCreatedAt_${values.email}`, createdAt);
+                localStorage.setItem('userName', values.fullName)
+                localStorage.setItem('userCreatedAt', data.user?.createdAt ?? new Date().toISOString())
+
+                const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: values.email, password: values.password })
+                });
+                const loginData = await loginRes.json();
+                if (!loginRes.ok) throw new Error(loginData.error);
 
                 login({
                     email: values.email,
                     name: values.fullName,
-                    createdAt,
-                }, data.token);
+                    createdAt: data.user?.createdAt ?? new Date().toISOString()
+                }, loginData.token);
                 navigate('/');
             } catch (err) {
                 setErrors({ general: err.message });
@@ -166,7 +173,7 @@ export default function SignUp() {
                                 <Button
                                     text="Continue as a Guest"
                                     variant="outline"
-                                    onClick={() => navigate("/")}
+                                    onClick={() => navigate("/scan-home")}
                                     disabled={loading}
                                 />
                             </div>

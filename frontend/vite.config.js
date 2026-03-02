@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: env.VITE_API_URL,
+          target: env.VITE_API_URL || 'https://safescan-backend-1.onrender.com',
           changeOrigin: true,
           secure: true,
         }

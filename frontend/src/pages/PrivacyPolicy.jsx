@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const SECTIONS = [
@@ -81,19 +82,18 @@ This Privacy Policy & Disclaimer explains what data we collect, why we collect i
 
 export default function PrivacyPolicy() {
     const navigate = useNavigate()
+    const [agreed, setAgreed] = useState(false)
 
     return (
         <div className="min-h-screen bg-bg-primary">
             <div className="mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-14">
 
-                {/* Header */}
                 <button
                     type="button"
                     onClick={() => {
                         if (window.opener) {
                             window.close()
                         } else {
-                            // check if user is logged in
                             const token = localStorage.getItem('token')
                             navigate(token ? '/' : '/login')
                         }
@@ -117,14 +117,33 @@ export default function PrivacyPolicy() {
                     <p className="text-sm text-text-secondary">SafeScan MVP · Last updated February 2026</p>
                 </div>
 
-                {/* Consent summary card */}
+                {/* Consent summary card with checkbox */}
                 <div className="bg-[#E7F0EF] rounded-2xl p-5 mb-10 border border-primary/20">
-                    <p className="text-sm text-text-body leading-relaxed">
+                    <p className="text-sm text-text-body leading-relaxed mb-4">
                         By creating a SafeScan account, you confirm that your <span className="font-semibold text-text-title">name and email</span> will be used solely for account creation and service delivery. SafeScan results are <span className="font-semibold text-text-title">informational only</span> and do not constitute medical, legal, or diagnostic advice.
                     </p>
+                    <div className="flex items-start gap-3">
+                        <input
+                            id="privacy-consent"
+                            type="checkbox"
+                            checked={agreed}
+                            onChange={(e) => setAgreed(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 shrink-0 border-[1.5px] border-primary rounded cursor-pointer accent-primary"
+                        />
+                        <label htmlFor="privacy-consent" className="text-sm text-text-body leading-relaxed cursor-pointer select-none">
+                            I have read and understood the SafeScan Privacy Policy and Disclaimer. I understand that my data (name and email) will be used for account creation and service delivery, and that SafeScan is for informational purposes only.
+                        </label>
+                    </div>
+                    {agreed && (
+                        <div className="flex items-center gap-2 mt-3 text-sm font-semibold text-primary">
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Consent recorded
+                        </div>
+                    )}
                 </div>
 
-                {/* Sections */}
                 <div className="flex flex-col gap-8">
                     {SECTIONS.map((section) => (
                         <div key={section.title}>
@@ -149,7 +168,6 @@ export default function PrivacyPolicy() {
                     ))}
                 </div>
 
-                {/* Footer */}
                 <div className="mt-12 pt-6 border-t border-border text-center">
                     <p className="text-xs text-text-secondary">© 2026 SafeScan · All rights reserved</p>
                 </div>

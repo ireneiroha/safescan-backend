@@ -4,33 +4,40 @@ import { useNavigate, useLocation } from 'react-router-dom'
 export default function ConfirmIngredients() {
     const navigate = useNavigate()
     const location = useLocation()
-    const extractedText = location.state?.extractedText ?? ''
-    const imageData = location.state?.imageData ?? null
-
+    const scanId = location.state?.scanId ?? null
+    const productCategory = location.state?.productCategory ?? ''
+    
+    const extractedText = extractIngredients(location.state?.extractedText ?? '')
     const [ingredients, setIngredients] = useState(extractedText)
 
-    const handleRescan = () => {
-        navigate('/scan-home')
+    function extractIngredients(text) {
+        if (!text) return ''
+        // Find where ingredients section starts
+        const match = text.match(/ingredients[:\s]*/i)
+        if (!match) return text // no match, return as is
+        let extracted = text.slice(match.index + match[0].length)
+        // Cut off at next section header
+        const stopWords = /directions:|warnings?:|how to use:|caution:|note:|storage:|manufactured/i
+        const stop = extracted.search(stopWords)
+        if (stop !== -1) extracted = extracted.slice(0, stop)
+        return extracted.trim()
     }
 
     const handleContinue = () => {
         if (!ingredients.trim()) return
-        navigate('/analyzing', { state: { ingredients, imageData } })
+        navigate('/analyzing', { state: { ingredients, scanId, productCategory } })
     }
 
     return (
         <div className="mx-auto max-w-md md:max-w-[1440px] px-4 py-8 md:px-10 md:py-12">
             <div className="md:max-w-2xl md:mx-auto">
-
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-text-title">Confirm Ingredients</h1>
                     <p className="text-sm text-text-secondary mt-1">Review and edit the extracted text if needed</p>
                 </div>
 
                 <div className="mb-2">
-                    <label className="block text-sm font-bold text-text-title mb-2">
-                        Ingredient List
-                    </label>
+                    <label className="block text-sm font-bold text-text-title mb-2">Ingredient List</label>
                     <textarea
                         value={ingredients}
                         onChange={(e) => setIngredients(e.target.value)}
@@ -43,7 +50,7 @@ export default function ConfirmIngredients() {
 
                 <button
                     type="button"
-                    onClick={handleRescan}
+                    onClick={() => navigate('/scan-home')}
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary px-4 py-3.5 font-bold text-primary hover:bg-teal-50 transition-colors mt-4"
                 >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,7 +59,7 @@ export default function ConfirmIngredients() {
                     Re-scan
                 </button>
 
-                <div className="mt-auto pt-8">
+                <div className="pt-8">
                     <button
                         type="button"
                         onClick={handleContinue}
@@ -62,7 +69,6 @@ export default function ConfirmIngredients() {
                         Continue Analysis
                     </button>
                 </div>
-
             </div>
         </div>
     )
