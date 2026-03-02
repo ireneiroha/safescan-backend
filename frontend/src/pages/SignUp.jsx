@@ -43,7 +43,7 @@ export default function SignUp() {
                     body: JSON.stringify({
                         email: values.email,
                         password: values.password,
-                        consent_given: true
+                        name: values.fullName,
                     })
                 });
                 const data = await res.json();

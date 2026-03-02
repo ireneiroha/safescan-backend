@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import './themes/variables.css'
 import './styles/global.css'
 import './index.css'
@@ -8,7 +8,7 @@ import SignIn from './pages/SignIn'
 import Navbar from './components/layout/Navbar'
 import ScrollToTop from './utils/ScrollToTop'
 import Lookup from './pages/Lookup'
-// import PrivateRoute from './utils/PrivateRoute'
+import PrivateRoute from './utils/PrivateRoute'
 import History from './pages/History'
 import Results from './pages/Results'
 import Settings from './pages/Settings'
@@ -16,6 +16,7 @@ import ScanLanding from './pages/ScanLanding'
 import Landing from './pages/Landing'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import About from './pages/About'
+import OCRReview from './pages/OCRReview'
 import ConfirmIngredients from './components/camera/ConfirmIngredients'
 import Analyzing from './components/camera/Analyzing'
 
@@ -36,23 +37,22 @@ function AppLayout() {
           <Route path="/login" element={<SignIn />} />
           <Route path="/scan-home" element={<ScanLanding />} />
           <Route path="/lookup" element={<Lookup />} />
-          {/* <Route path='/history' element={
+          <Route path="/ocr-review" element={<OCRReview />} />
+          <Route path="/history" element={
             <PrivateRoute>
               <History />
             </PrivateRoute>
-          } /> */}
-          <Route path='/history' element={<History />} />
-          <Route path='/scan-result/:id' element={<Results />} />
-          {/* <Route path="/settings" element={
+          } />
+          <Route path="/scan-result/:id" element={<Results />} />
+          <Route path="/settings" element={
             <PrivateRoute>
               <Settings />
             </PrivateRoute>
-          } /> */}
-          <Route path='/settings' element={<Settings />} />
-          <Route path='/privacy' element={<PrivacyPolicy />} />
-          <Route path='/about' element={<About />} />
-          <Route path='/confirm' element={<ConfirmIngredients />} />
-          <Route path='/analyzing' element={<Analyzing />} />
+          } />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/confirm" element={<ConfirmIngredients />} />
+          <Route path="/analyzing" element={<Analyzing />} />
         </Routes>
       </main>
     </div>

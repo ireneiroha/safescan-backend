@@ -11,13 +11,12 @@ export default function History() {
             setLoading(true)
             try {
                 const token = localStorage.getItem('token')
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/scans`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/scan`, {
                     headers: { Authorization: `Bearer ${token}` }
                 })
                 const data = await res.json()
                 if (!res.ok) throw new Error(data.error ?? 'Failed to fetch history')
 
-                // Transform backend shape to what HistoryCard expects
                 const transformed = (data.data ?? []).map((item) => {
                     const s = item.summary ?? {}
                     const safety = s.restrictedCount > 0 ? 'restricted'
