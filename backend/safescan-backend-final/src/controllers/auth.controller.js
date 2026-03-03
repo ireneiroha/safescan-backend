@@ -1,100 +1,191 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const db = require('../db');
 
-const SALT_ROUNDS = 12;
-const TOKEN_TTL = '7d';
+// Strong password validation regex:
+// - Minimum 8 characters
+// - At least 2 numbers
+// - At least 1 symbol
+const strongPasswordRegex = /^(?=(?:.*\d){2,})(?=.*[!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`]).{8,}$/;
 
-function makeToken(userId, email) {
-  return jwt.sign({ userId, email }, process.env.JWT_SECRET, { expiresIn: TOKEN_TTL });
-}
+// JWT Secret validation - defensive check
+const getJwtSecret = () => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not configured');
+  }
+  return process.env.JWT_SECRET;
+};
 
 exports.register = async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, consent_given } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
-    }
-
-    const existing = await db.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existing.rows.length > 0) {
-      return res.status(409).json({ error: 'An account with this email already exists' });
+    // Validate consent is given (POPIA/GDPR requirement)
+    if (consent_given !== true) {
+      return res.status(400).json({ 
+        error: 'You must agree to the SafeScan Privacy Policy and Disclaimer.' 
+      });
     }
 
-    const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
-    const displayName = name?.trim() || email.split('@')[0];
+    // Validate email
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
 
-    const { rows } = await db.query(
-      `INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3)
-       RETURNING id, email, name, created_at`,
-      [email, password_hash, displayName]
-    );
-    const user = rows[0];
-    const token = makeToken(user.id, user.email);
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
 
+    // Validate password exists
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    // Validate strong password requirements:
+    // - Minimum 8 characters
+    // - At least 2 numbers
+    // - At least 1 symbol
+    if (!strongPasswordRegex.test(password)) {
+      return res.status(400).json({ 
+        error: 'Password must be at least 8 characters long, contain at least 2 numbers and 1 symbol.' 
+      });
+    }
+
+    // Check if email already exists
+    let existingUser;
+    try {
+      existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    } catch (dbError) {
+      console.error('Database query error:', dbError.message);
+      console.error('Error code:', dbError.code);
+      return res.status(503).json({ error: 'Database connection failed' });
+    }
+
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    // Hash password using bcrypt
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert new user with consent (POPIA/GDPR compliance)
+    let newUser;
+    try {
+      newUser = await db.query(
+        'INSERT INTO users (email, password, consent_given, consent_timestamp) VALUES ($1, $2, $3, NOW()) RETURNING id, email, consent_given, consent_timestamp, created_at',
+        [email, hashedPassword, true]
+      );
+    } catch (dbError) {
+      console.error('Database insert error:', dbError.message);
+      console.error('Error code:', dbError.code);
+      return res.status(503).json({ error: 'Database connection failed' });
+    }
+
+    const user = newUser.rows[0];
     res.status(201).json({
-      token,
-      user: { id: user.id, email: user.email, name: user.name, createdAt: user.created_at },
+      message: 'User registered successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        consent_given: user.consent_given,
+        consent_timestamp: user.consent_timestamp,
+        createdAt: user.created_at
+      }
     });
   } catch (e) {
-    console.error('[auth] register error:', e.message);
+    console.error('Unexpected registration error:', e.message);
+    console.error('Stack:', e.stack);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    // Check JWT_SECRET first (defensive)
+    let jwtSecret;
+    try {
+      jwtSecret = getJwtSecret();
+    } catch (secretError) {
+      console.error('JWT Secret configuration error:', secretError.message);
+      return res.status(500).json({ error: 'JWT secret not configured' });
     }
 
-    const result = await db.query(
-      'SELECT id, email, name, password_hash, created_at FROM users WHERE email = $1',
-      [email]
-    );
+    const { email, password } = req.body;
+
+    // Validate that both email and password are present
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    // Query the database for user with the provided email
+    let result;
+    try {
+      result = await db.query('SELECT id, email, password FROM users WHERE email = $1 LIMIT 1', [email]);
+    } catch (dbError) {
+      console.error('Database query error:', dbError.message);
+      console.error('Stack:', dbError.stack);
+      return res.status(503).json({ error: 'Database connection failed' });
+    }
+
+    // If user is not found, return 401
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
     const user = result.rows[0];
 
-    if (!user.password_hash) {
-      // Legacy account created before passwords were enforced — set password now
-      const hash = await bcrypt.hash(password, SALT_ROUNDS);
-      await db.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, user.id]);
-    } else {
-      const valid = await bcrypt.compare(password, user.password_hash);
-      if (!valid) {
-        return res.status(401).json({ error: 'Invalid email or password' });
-      }
+    // Compare the provided password with the hashed password in the database using bcrypt.compare
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    // If password does NOT match, return 401
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    const token = makeToken(user.id, user.email);
-    res.json({
-      token,
-      user: { id: user.id, email: user.email, name: user.name, createdAt: user.created_at },
-    });
+    // Password matches - generate JWT token
+    const token = jwt.sign({ userId: user.id, email: user.email }, jwtSecret, { expiresIn: '1h' });
+    res.json({ token });
   } catch (e) {
-    console.error('[auth] login error:', e.message);
+    // Handle JWT signing errors
+    if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
+      console.error('JWT error:', e.message);
+      return res.status(500).json({ error: 'Authentication failed' });
+    }
+    
+    // Unexpected errors
+    console.error('Unexpected login error:', e.message);
+    console.error('Stack:', e.stack);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 exports.verify = async (req, res) => {
   try {
+    // Check JWT_SECRET first (defensive)
+    let jwtSecret;
+    try {
+      jwtSecret = getJwtSecret();
+    } catch (secretError) {
+      console.error('JWT Secret configuration error:', secretError.message);
+      return res.status(500).json({ error: 'JWT secret not configured' });
+    }
+
     const { token } = req.body;
     if (!token) {
       return res.status(400).json({ error: 'Token is required' });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const decoded = jwt.verify(token, jwtSecret);
     res.json({ valid: true, user: { id: decoded.userId, email: decoded.email } });
   } catch (e) {
-    res.status(401).json({ error: 'Invalid token' });
+    if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    console.error('Token verification error:', e.message);
+    console.error('Stack:', e.stack);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };

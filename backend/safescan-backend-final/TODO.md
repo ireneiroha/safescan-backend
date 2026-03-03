@@ -1,13 +1,23 @@
-# TODO: Run SafeScan Backend Project
+# TODO - AI Action Endpoint Implementation
 
-## Steps to Complete
-- [x] Edit src/server.js to add dotenv.config() at the top to load environment variables before app initialization.
-- [x] Navigate to safescan-backend-final/ directory.
-- [x] Run npm run dev to start the development server.
-- [x] Create missing dataset.controller.js to fix module not found error.
-- [x] Verify server starts on port 5000 without JWT_SECRET error.
-- [x] Test health endpoint: GET /api/health.
-- [ ] Test auth endpoints: POST /api/auth/login, POST /api/auth/verify.
-- [ ] Confirm protected routes work with/without token.
-- [ ] Check for any runtime errors and correct if needed (e.g., DB connection, rate limiting, CORS).
-- [ ] Final verification: Server running cleanly, all endpoints responding as expected.
+## Implementation Tasks:
+- [x] Plan the implementation
+- [ ] Create src/services/aiExplain.service.js - AI service for explaining ingredients
+- [ ] Create src/controllers/ai.controller.js - Controller with explainIngredients
+- [ ] Create src/routes/ai.routes.js - Route file with POST /explain endpoint
+- [ ] Update src/routes/index.js - Add AI route with requireAuth
+- [ ] Update src/middlewares/validation.js - Add validation schema for ingredients
+- [ ] Update src/docs/openapi.json - Add POST /api/aiAction endpoint documentation
+
+## Validation Rules:
+- ingredients must be array of 1-30 strings
+- Each string trimmed length 2-80
+- Reject empty items
+
+## AI Service Requirements:
+- Use env vars: AI_PROVIDER, AI_API_KEY, AI_MODEL
+- Timeout: 20 seconds
+- Retry once on non-JSON response
+
+## Rate Limiting:
+- 20 requests per 5 minutes per IP for /api/ai route

@@ -1,6 +1,0 @@
-export default function EmptyState() {
-    return (
-        <div className="">
-        </div>
-    );
-}
