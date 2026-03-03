@@ -1,0 +1,690 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SafeScan API",
+    "version": "1.0.0",
+    "description": "SafeScan backend API for OCR-based ingredient scanning and safety classification."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local dev"
+    },
+    {
+      "url": "https://safescan-backend-1.onrender.com",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Service health checks"
+    },
+    {
+      "name": "Scan",
+      "description": "OCR + ingredient analysis"
+    },
+    {
+      "name": "Scan History",
+      "description": "Retrieve user's scan history"
+    },
+    {
+      "name": "Lookup",
+      "description": "Public ingredient lookup"
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints"
+    },
+    {
+      "name": "Privacy",
+      "description": "Privacy policy and legal information"
+    },
+    {
+      "name": "AI Action",
+      "description": "AI-powered ingredient explanation and classification"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/privacy": {
+      "get": {
+        "tags": ["Privacy"],
+        "summary": "Get privacy policy and disclaimer",
+        "description": "Returns the SafeScan Privacy Policy and Disclaimer for user consent.",
+        "responses": {
+          "200": {
+            "description": "Privacy policy information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a new user",
+        "description": "Create a new user account with email and password. Requires explicit consent to the Privacy Policy and Disclaimer per POPIA/GDPR.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "consent_given"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "user@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "minLength": 6,
+                    "example": "password123"
+                  },
+                  "consent_given": {
+                    "type": "boolean",
+                    "description": "User must agree to the Privacy Policy and Disclaimer",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registration successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "email": { "type": "string" },
+                        "consent_given": { "type": "boolean" },
+                        "consent_timestamp": { "type": "string" },
+                        "createdAt": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or consent not given",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login with email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "user@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scan": {
+      "post": {
+        "tags": ["Scan"],
+        "summary": "Scan an ingredient label image (OCR -> analysis)",
+        "description": "Upload a JPG/PNG image of an ingredient label. Returns extracted text and classified ingredients.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Ingredient label image (JPG/PNG, max 5MB)"
+                  },
+                  "productCategory": {
+                    "type": "string",
+                    "description": "Optional product category (e.g., Skincare, Haircare)",
+                    "example": "Skincare"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scan + analysis result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "422": {
+            "description": "OCR could not read text"
+          }
+        }
+      }
+    },
+    "/api/scan/analyze": {
+      "post": {
+        "tags": ["Scan"],
+        "summary": "Analyze edited OCR text (no image)",
+        "description": "Analyze ingredient text using dataset (PostgreSQL), AI service, or built-in rules. Returns risk level and matched ingredients.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - text is required"
+          }
+        }
+      }
+    },
+    "/api/scans": {
+      "get": {
+        "tags": ["Scan History"],
+        "summary": "Get scan history for logged-in user",
+        "description": "Returns paginated list of scans created by the authenticated user.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 10 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated scan history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/lookup": {
+      "get": {
+        "tags": ["Lookup"],
+        "summary": "Lookup ingredient safety information",
+        "description": "Public endpoint to search for ingredient safety information.",
+        "parameters": [
+          {
+            "name": "ingredient",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "paraben"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ingredient information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LookupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - ingredient parameter required"
+          }
+        }
+      }
+    },
+"/api/aiAction/health": {
+      "get": {
+        "tags": ["AI Action"],
+        "summary": "AI service health check",
+        "description": "Check the health status of the AI service. Returns the provider and model being used.",
+        "responses": {
+          "200": {
+            "description": "AI service health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIHealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AI service error"
+          }
+        }
+      }
+    },
+    "/api/aiAction/explain": {
+      "post": {
+        "tags": ["AI Action"],
+        "summary": "Explain selected ingredients using AI",
+        "description": "Explain and classify cosmetic ingredients using AI. This endpoint is called after scanning when user clicks 'Ask AI'. It provides AI explanations/classifications for ingredients not covered by the dataset.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIExplainRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI explanation results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AIExplainResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid ingredients"
+          },
+          "503": {
+            "description": "AI service unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "ok" },
+          "service": { "type": "string", "example": "safescan-backend" },
+          "timestamp": { "type": "string", "example": "2024-01-15T10:30:00.000Z" }
+        }
+      },
+      "PrivacyResponse": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "example": "SafeScan Privacy Policy" },
+          "effective_date": { "type": "string", "example": "TBD" },
+          "privacy_notice": { "type": "string" },
+          "disclaimer": { "type": "string" }
+        }
+      },
+      "AIExplainRequest": {
+        "type": "object",
+        "required": ["ingredients"],
+        "properties": {
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 30,
+            "example": ["Water", "Glycerin", "Paraben", "Fragrance"]
+          }
+        }
+      },
+"AIExplainResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Paraben"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Safe", "Risky", "Restricted"],
+            "example": "Risky"
+          },
+          "explanation": {
+            "type": "string",
+            "example": "Parabens are preservatives used in cosmetics. Some studies suggest they may disrupt hormones at high concentrations, though they are considered safe at low levels."
+          }
+        }
+      },
+      "AIHealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["available", "missing_api_key"],
+            "example": "available"
+          },
+          "provider": {
+            "type": "string",
+            "example": "openai"
+          },
+          "model": {
+            "type": "string",
+            "example": "gpt-4o-mini"
+          }
+        }
+      },
+      "AnalyzeRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Ingredient text to analyze (can be raw OCR output or edited text)",
+            "example": "Ingredients: Aqua, Glycerin, Paraben, Fragrance"
+          }
+        }
+      },
+      "AnalyzeResponse": {
+        "type": "object",
+        "properties": {
+          "scanId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "ID of saved scan (if user is authenticated)"
+          },
+          "extractedText": {
+            "type": "string",
+            "description": "The input text that was analyzed"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH"],
+            "description": "Overall risk level based on matched ingredients"
+          },
+          "matched_ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Ingredient name from dataset"
+                },
+                "risk_level": {
+                  "type": "string",
+                  "enum": ["LOW", "MEDIUM", "HIGH"]
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Explanation of the risk assessment"
+                }
+              }
+            }
+          },
+          "explanations": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of explanations for flagged ingredients"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["dataset", "ai", "rules"],
+            "description": "Source of analysis: dataset (PostgreSQL), ai (external AI service), or rules (built-in rules)"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Recommendations (only present when source is 'ai')"
+          },
+          "model_version": {
+            "type": "string",
+            "description": "AI model version (only present when source is 'ai')"
+          },
+          "ingredients": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of normalized ingredient tokens (only present when source is 'rules')"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ingredient": { "type": "string" },
+                "status": { "type": "string" },
+                "explanation": { "type": "string" },
+                "matchedKey": { "type": "string", "nullable": true }
+              }
+            },
+            "description": "Detailed results (only present when source is 'rules')"
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "total": { "type": "integer" },
+              "safe": { "type": "integer" },
+              "risky": { "type": "integer" },
+              "restricted": { "type": "integer" },
+              "unknown": { "type": "integer" }
+            },
+            "description": "Summary counts (only present when source is 'rules')"
+          },
+          "disclaimer": {
+            "type": "string"
+          }
+        }
+      },
+      "IngredientResult": {
+        "type": "object",
+        "properties": {
+          "ingredient": { "type": "string", "example": "paraben" },
+          "status": {
+            "type": "string",
+            "enum": ["Safe", "Risky", "Restricted", "Unknown"],
+            "example": "Risky"
+          },
+          "explanation": { "type": "string" },
+          "matchedKey": { "type": "string", "nullable": true }
+        }
+      },
+      "ScanResponse": {
+        "type": "object",
+        "properties": {
+          "extractedText": { "type": "string" },
+          "scanId": { "type": "integer" },
+          "productCategory": { "type": "string", "nullable": true },
+          "ingredients": { "type": "array", "items": { "type": "string" } },
+          "results": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IngredientResult" }
+          },
+          "summary": { "$ref": "#/components/schemas/ScanSummary" },
+          "disclaimer": { "type": "string" }
+        }
+      },
+      "ScanSummary": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "safe": { "type": "integer" },
+          "risky": { "type": "integer" },
+          "restricted": { "type": "integer" },
+          "unknown": { "type": "integer" }
+        }
+      },
+      "ScanHistoryItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "createdAt": { "type": "string" },
+          "extractedText": { "type": "string" },
+          "productCategory": { "type": "string", "nullable": true },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "safeCount": { "type": "integer" },
+              "riskyCount": { "type": "integer" },
+              "restrictedCount": { "type": "integer" },
+              "unknownCount": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "ScanHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ScanHistoryItem" }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": { "type": "integer" },
+              "limit": { "type": "integer" },
+              "total": { "type": "integer" },
+              "totalPages": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "LookupResponse": {
+        "type": "object",
+        "properties": {
+          "ingredient": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["Safe", "Risky", "Restricted", "Unknown"]
+          },
+          "explanation": { "type": "string" },
+          "matchedKey": { "type": "string", "nullable": true }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
