@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const requireAuth = require('../middlewares/requireAuth');
+const optionalAuth = require('../middlewares/optionalAuth');
 const rateLimit = require('express-rate-limit');
 
 router.use('/health', require('./health.routes'));
@@ -11,10 +12,10 @@ router.use('/lookup', require('./lookup.routes'));
 // Privacy policy endpoint (public)
 router.use('/privacy', require('./privacy.routes'));
 
-// Protected MVP endpoints
-router.use('/scan', requireAuth, require('./scan.routes'));
+// Scan endpoints - optional auth (guests can scan, authenticated users save to history)
+router.use('/scan', optionalAuth, require('./scan.routes'));
 
-// Protected scan history endpoint
+// Protected scan history endpoint (requires auth)
 router.use('/scans', requireAuth, require('./scans.routes'));
 
 // Protected Dataset endpoints
@@ -42,3 +43,4 @@ const aiLimiter = rateLimit({
 router.use('/aiAction', aiLimiter, require('./ai.routes'));
 
 module.exports = router;
+

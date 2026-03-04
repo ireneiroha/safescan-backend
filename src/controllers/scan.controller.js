@@ -1,18 +1,36 @@
 const ocr = require('../services/ocr.service');
 const analyzeRuleBased = require('../services/ingredientAnalysis.service');
 const { analyzeWithAI } = require('../services/aiModel.service');
-const { analyzeTextWithDataset, isDatasetAvailable, mapRiskLevelToScanRisk } = require('../services/datasetAnalysis.service');
-const extractIngredientsSection = require('../utils/extractIngredientsSection');
+const { 
+  analyzeTextWithDataset, 
+  isDatasetAvailable, 
+  mapRiskLevelToScanRisk, 
+  parseIngredientTokens,
+  matchIngredientsWithDataset,
+  extractIngredientsSection 
+} = require('../services/datasetAnalysis.service');
+const { explainIngredients, explainIngredientsBatched, isApiKeyConfigured } = require('../services/aiExplain.service');
 const db = require('../db');
+
+// Maximum number of ingredients to send to AI at once
+const MAX_AI_INGREDIENTS = parseInt(process.env.MAX_AI_INGREDIENTS || '25', 10);
 
 /**
  * POST /api/scan
  * multipart/form-data: image=<file>
  * Optional: productCategory (string)
  * Returns extractedText + analysis.
+ * 
+ * Public endpoint - works for guests and authenticated users
+ * If authenticated: saves scan to history
+ * If guest: returns results without saving
  */
 exports.scanImage = async (req, res) => {
   const client = await db.pool.connect();
+  
+  // Determine if user is authenticated
+  const isAuthenticated = req.user && req.user.id;
+  const mode = isAuthenticated ? 'user' : 'guest';
   
   try {
     // Check if image file is present
@@ -71,7 +89,6 @@ exports.scanImage = async (req, res) => {
       }
       
       if (ocrError.code === 'OCR_FAILED') {
-        // Log detailed error response if available
         if (ocrError.response?.data) {
           console.error('OCR API error response:', JSON.stringify(ocrError.response.data));
         }
@@ -82,7 +99,6 @@ exports.scanImage = async (req, res) => {
         });
       }
       
-      // Generic OCR failure
       return res.status(500).json({
         error: 'Scan processing failed',
         details: 'OCR extraction failed',
@@ -101,67 +117,91 @@ exports.scanImage = async (req, res) => {
     // Extract ingredients section from OCR text
     const ingredientsText = extractIngredientsSection(extractedText);
 
-    // Analyze the extracted ingredients section (or fallback to full text if extraction failed)
-    const analysis = analyzeRuleBased(ingredientsText);
-
-    // Get user ID if authenticated (optional)
-    const userId = req.user ? req.user.id : null;
+    // Get user ID if authenticated
+    const userId = isAuthenticated ? req.user.id : null;
     const productCategory = req.body.productCategory || null;
 
-    // Save scan to database within a transaction
-    await client.query('BEGIN');
+    // Perform full analysis: dataset + AI for unmatched
+    const analysis = await performFullAnalysis(ingredientsText);
 
-    // Insert scan record
-    const scanResult = await client.query(
-      'INSERT INTO scans (user_id, image_path, ocr_text, product_category) VALUES ($1, $2, $3, $4) RETURNING id',
-      [userId, req.file ? req.file.originalname : null, extractedText, productCategory]
-    );
-    const scanId = scanResult.rows[0].id;
+    let scanId = null;
+    let saved = false;
 
-    // Insert scan_ingredients for each analyzed ingredient
-    if (analysis.results && analysis.results.length > 0) {
-      for (const result of analysis.results) {
-        // Try to find existing ingredient or insert new
-        let ingredientResult = await client.query(
-          'SELECT id FROM ingredients WHERE LOWER(name) = LOWER($1)',
-          [result.ingredient]
+    // Only save to database if user is authenticated
+    if (isAuthenticated) {
+      try {
+        // Save scan to database within a transaction
+        await client.query('BEGIN');
+
+        // Determine overall risk level
+        const overallRisk = analysis.risk_level;
+
+        // Insert scan record
+        const scanResult = await client.query(
+          'INSERT INTO scans (user_id, image_path, ocr_text, product_category, overall_risk) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+          [userId, req.file ? req.file.originalname : null, extractedText, productCategory, overallRisk]
         );
+        scanId = scanResult.rows[0].id;
 
-        let ingredientId;
-        if (ingredientResult.rows.length === 0) {
-          const newIngredient = await client.query(
-            'INSERT INTO ingredients (name, normalized_name, risk) VALUES ($1, $2, $3) RETURNING id',
-            [result.ingredient, result.matchedKey, result.status]
-          );
-          ingredientId = newIngredient.rows[0].id;
-        } else {
-          ingredientId = ingredientResult.rows[0].id;
+        // Insert scan_ingredients for each analyzed ingredient
+        const allIngredients = analysis.ingredients || [];
+        if (allIngredients.length > 0) {
+          for (const result of allIngredients) {
+            // Determine risk value for database
+            const riskValue = mapStatusToDbValue(result.status);
+            
+            // Try to find existing ingredient or insert new
+            let ingredientResult = await client.query(
+              'SELECT id FROM ingredients WHERE LOWER(name) = LOWER($1)',
+              [result.name]
+            );
+
+            let ingredientId;
+            if (ingredientResult.rows.length === 0) {
+              const newIngredient = await client.query(
+                'INSERT INTO ingredients (name, normalized_name, risk) VALUES ($1, $2, $3) RETURNING id',
+                [result.name, result.name.toLowerCase(), riskValue]
+              );
+              ingredientId = newIngredient.rows[0].id;
+            } else {
+              ingredientId = ingredientResult.rows[0].id;
+            }
+
+            // Insert scan_ingredient relationship
+            await client.query(
+              'INSERT INTO scan_ingredients (scan_id, ingredient_id, raw_text, risk) VALUES ($1, $2, $3, $4)',
+              [scanId, ingredientId, result.name, riskValue]
+            );
+          }
         }
 
-        // Insert scan_ingredient relationship
-        await client.query(
-          'INSERT INTO scan_ingredients (scan_id, ingredient_id, raw_text, risk) VALUES ($1, $2, $3, $4)',
-          [scanId, ingredientId, result.ingredient, result.status]
-        );
+        await client.query('COMMIT');
+        saved = true;
+      } catch (dbError) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.warn(`Failed to save scan to database: ${dbError.message}`);
+        saved = false;
       }
     }
 
-    await client.query('COMMIT');
-
     res.json({
       scanId,
+      saved,
+      mode,
       extractedText,
       ingredientsText,
       productCategory,
-      ...analysis,
+      risk_level: analysis.risk_level,
+      overallRisk: analysis.risk_level,
+      ingredients: analysis.ingredients,
+      summary: analysis.summary,
+      source: analysis.source,
       disclaimer:
         'SafeScan provides informational guidance only and is not medical advice. If you have a reaction or concern, consult a healthcare professional.',
     });
   } catch (e) {
-    await client.query('ROLLBACK').catch(() => {});
     console.error('Scan image error:', e.message);
     
-    // Return 500 with safe message - never crash the server
     return res.status(500).json({
       error: 'Scan processing failed',
       details: 'An unexpected error occurred',
@@ -176,11 +216,18 @@ exports.scanImage = async (req, res) => {
  * POST /api/scan/analyze
  * JSON: { text: "...", productCategory: "..." }
  * Use this after the user edits OCR text on the frontend.
- * Tries dataset first, then AI, then falls back to rule-based analysis.
- * Returns matched_ingredients, risk_level, explanations, source, and summary counts.
+ * 
+ * Public endpoint - works for guests and authenticated users
+ * If authenticated: saves scan to history
+ * If guest: returns results without saving
  */
 exports.analyzeText = async (req, res, next) => {
   const client = await db.pool.connect();
+  
+  // Determine if user is authenticated
+  const isAuthenticated = req.user && req.user.id;
+  const mode = isAuthenticated ? 'user' : 'guest';
+  
   try {
     const { text, productCategory } = req.body || {};
     
@@ -191,82 +238,40 @@ exports.analyzeText = async (req, res, next) => {
       });
     }
 
-    let analysis;
-    let source = 'rules';
+    // Extract ingredients section from text
+    const ingredientsText = extractIngredientsSection(text);
+
+    // Perform full analysis with dataset + AI
+    const analysis = await performFullAnalysis(ingredientsText);
+
+    // Get user ID if authenticated
+    const userId = isAuthenticated ? req.user.id : null;
     let scanId = null;
-    let debug = undefined;
-    const isDev = process.env.NODE_ENV !== 'production';
-
-    // Try dataset first if available - ONLY fall back on error, not on 0 matches
-    const datasetAvailable = await isDatasetAvailable();
-    if (datasetAvailable) {
-      try {
-        analysis = await analyzeTextWithDataset(text);
-        source = 'dataset';
-        // Include debug info in development mode
-        if (isDev && analysis.debug) {
-          debug = analysis.debug;
-        }
-      } catch (datasetError) {
-        // Dataset query FAILED (error), fall back to next option
-        console.warn(`Dataset analysis failed (error), falling back: ${datasetError.message}`);
-        
-        // Try AI if configured, otherwise use rules
-        if (process.env.AI_SERVICE_URL) {
-          try {
-            const aiResult = await analyzeWithAI(text);
-            analysis = convertAIRuleToFormat(aiResult);
-            source = 'ai';
-          } catch (aiError) {
-            console.warn(`AI analysis failed, falling back to rules: ${aiError.message}`);
-            analysis = analyzeRuleBased(text);
-            source = 'rules';
-          }
-        } else {
-          analysis = analyzeRuleBased(text);
-          source = 'rules';
-        }
-      }
-    } else {
-      // Dataset not available, try AI if configured, otherwise use rules
-      if (process.env.AI_SERVICE_URL) {
-        try {
-          const aiResult = await analyzeWithAI(text);
-          analysis = convertAIRuleToFormat(aiResult);
-          source = 'ai';
-        } catch (aiError) {
-          console.warn(`AI analysis failed, falling back to rules: ${aiError.message}`);
-          analysis = analyzeRuleBased(text);
-          source = 'rules';
-        }
-      } else {
-        analysis = analyzeRuleBased(text);
-        source = 'rules';
-      }
-    }
-
-    // Calculate summary counts from the analysis results
-    const summary = calculateSummary(analysis, source);
-
-    // Save scan to database if user is authenticated
-    const userId = req.user ? req.user.id : null;
-    if (userId) {
+    let saved = false;
+    
+    // Only save to database if user is authenticated
+    if (isAuthenticated) {
       try {
         await client.query('BEGIN');
         
+        // Determine overall risk level
+        const overallRisk = analysis.risk_level;
+
         // Insert scan record with productCategory
         const scanResult = await client.query(
-          'INSERT INTO scans (user_id, ocr_text, product_category) VALUES ($1, $2, $3) RETURNING id',
-          [userId, text, productCategory || null]
+          'INSERT INTO scans (user_id, ocr_text, product_category, overall_risk) VALUES ($1, $2, $3, $4) RETURNING id',
+          [userId, text, productCategory || null, overallRisk]
         );
         scanId = scanResult.rows[0].id;
 
-        // Insert scan_ingredients for each matched ingredient
-        // Use matched_ingredients from dataset/AI analysis
-        const ingredientsToSave = analysis.matched_ingredients || [];
+        // Insert scan_ingredients for each analyzed ingredient
+        const allIngredients = analysis.ingredients || [];
         
-        if (ingredientsToSave.length > 0) {
-          for (const ing of ingredientsToSave) {
+        if (allIngredients.length > 0) {
+          for (const ing of allIngredients) {
+            // Map risk to database value
+            const scanRisk = mapStatusToDbValue(ing.status);
+            
             // Try to find existing ingredient or insert new
             let ingredientResult = await client.query(
               'SELECT id FROM ingredients WHERE LOWER(name) = LOWER($1)',
@@ -275,8 +280,6 @@ exports.analyzeText = async (req, res, next) => {
 
             let ingredientId;
             if (ingredientResult.rows.length === 0) {
-              // Map risk level to scan_ingredients risk value
-              const scanRisk = mapRiskLevelToScanRisk(ing.risk_level);
               const newIngredient = await client.query(
                 'INSERT INTO ingredients (name, normalized_name, risk) VALUES ($1, $2, $3) RETURNING id',
                 [ing.name, ing.name.toLowerCase(), scanRisk]
@@ -286,8 +289,7 @@ exports.analyzeText = async (req, res, next) => {
               ingredientId = ingredientResult.rows[0].id;
             }
 
-            // Insert scan_ingredient relationship with proper risk mapping
-            const scanRisk = mapRiskLevelToScanRisk(ing.risk_level);
+            // Insert scan_ingredient relationship
             await client.query(
               'INSERT INTO scan_ingredients (scan_id, ingredient_id, raw_text, risk) VALUES ($1, $2, $3, $4)',
               [scanId, ingredientId, ing.name, scanRisk]
@@ -296,63 +298,33 @@ exports.analyzeText = async (req, res, next) => {
         }
 
         await client.query('COMMIT');
+        saved = true;
       } catch (dbError) {
         await client.query('ROLLBACK').catch(() => {});
-        // Don't fail the request if DB save fails, just log it
         console.warn(`Failed to save scan to database: ${dbError.message}`);
+        saved = false;
       }
     }
 
-    // Build response based on source
-    let response;
-    if (source === 'dataset') {
-      // Dataset response format
-      response = {
-        scanId,
-        extractedText: text,
-        productCategory: productCategory || null,
-        risk_level: analysis.risk_level,
-        matched_ingredients: analysis.matched_ingredients,
-        explanations: analysis.explanations,
-        source: 'dataset',
-        summary,
-        debug,
-        disclaimer:
-          'SafeScan provides informational guidance only and is not medical advice. If you have a reaction or concern, consult a healthcare professional.',
-      };
-    } else if (source === 'ai') {
-      // AI response format
-      response = {
-        scanId,
-        extractedText: text,
-        productCategory: productCategory || null,
-        risk_level: analysis.risk_level,
-        matched_ingredients: analysis.matched_ingredients,
-        explanations: analysis.explanations,
-        recommendations: analysis.recommendations,
-        model_version: analysis.model_version,
-        source: 'ai',
-        summary,
-        disclaimer:
-          'SafeScan provides informational guidance only and is not medical advice. If you have a reaction or concern, consult a healthcare professional.',
-      };
-    } else {
-      // Rule-based response format
-      response = {
-        scanId,
-        extractedText: text,
-        productCategory: productCategory || null,
-        ...analysis,
-        source: 'rules',
-        summary,
-        disclaimer:
-          'SafeScan provides informational guidance only and is not medical advice. If you have a reaction or concern, consult a healthcare professional.',
-      };
-    }
+    // Build response with all ingredients in order
+    const response = {
+      scanId,
+      saved,
+      mode,
+      extractedText: text,
+      ingredientsText,
+      productCategory: productCategory || null,
+      risk_level: analysis.risk_level,
+      overallRisk: analysis.risk_level,
+      ingredients: analysis.ingredients,
+      summary: analysis.summary,
+      source: analysis.source,
+      disclaimer:
+        'SafeScan provides informational guidance only and is not medical advice. If you have a reaction or concern, consult a healthcare professional.',
+    };
 
     res.json(response);
   } catch (e) {
-    // Ensure we always return JSON and never crash
     console.error(`Analyze text error: ${e.message}`);
     res.status(500).json({
       error: 'An error occurred while analyzing the text. Please try again.',
@@ -363,69 +335,231 @@ exports.analyzeText = async (req, res, next) => {
 };
 
 /**
- * Calculate summary counts from analysis results
- * safeCount = number of matched ingredients with risk_level == "LOW"
- * riskyCount = number of matched ingredients with risk_level == "MEDIUM"
- * restrictedCount = number of matched ingredients with risk_level == "HIGH"
+ * Perform full analysis: dataset + AI for unmatched ingredients
+ * Returns ingredients in the SAME order as parsed tokens
+ * @param {string} text - Ingredient text to analyze
+ * @returns {Promise<Object>} - Analysis result with all ingredients classified
  */
-function calculateSummary(analysis, source) {
-  // If dataset or AI analysis, use the summary from the analysis
-  if (source === 'dataset' && analysis.summary) {
-    return {
-      safeCount: analysis.summary.safeCount || 0,
-      riskyCount: analysis.summary.riskyCount || 0,
-      restrictedCount: analysis.summary.restrictedCount || 0
-    };
-  }
+async function performFullAnalysis(text) {
+  // Step 1: Parse ingredients into tokens (preserves order) and clean them
+  let tokens = parseIngredientTokens(text)
+    .map(t => t.trim())
+    .filter(t => t.length > 1);
   
-  // For AI analysis, calculate from matched_ingredients
-  if (source === 'ai' && analysis.matched_ingredients) {
-    return {
-      safeCount: analysis.matched_ingredients.filter(m => m.risk_level === 'LOW').length,
-      riskyCount: analysis.matched_ingredients.filter(m => m.risk_level === 'MEDIUM').length,
-      restrictedCount: analysis.matched_ingredients.filter(m => m.risk_level === 'HIGH').length
-    };
+  if (!tokens || tokens.length === 0) {
+    return createEmptyAnalysisResult();
   }
+
+  // Step 2: Try dataset analysis to get known and unknown
+  let knownResults = [];
+  let unknownNames = [];
+  let datasetAvailable = false;
   
-  // For rule-based analysis, use the summary from the analysis
-  if (analysis.summary) {
-    return {
-      safeCount: analysis.summary.safe || 0,
-      riskyCount: analysis.summary.risky || 0,
-      restrictedCount: analysis.summary.restricted || 0
-    };
+  try {
+    datasetAvailable = await isDatasetAvailable();
+    if (datasetAvailable) {
+      const result = await matchIngredientsWithDataset(tokens);
+      knownResults = result.knownResults || [];
+      unknownNames = result.unknownNames || [];
+    } else {
+      // Dataset not available - all are unknown
+      unknownNames = [...tokens];
+    }
+  } catch (datasetError) {
+    console.warn(`Dataset match failed: ${datasetError.message}`);
+    // If dataset fails, treat all as unknown
+    unknownNames = [...tokens];
   }
+
+  // Step 3: AI classify unknown ingredients (if any and AI is configured)
+  // Use explainIngredientsBatched for automatic deduplication and batching
+  let aiResults = [];
   
-  // Default: calculate from results
-  const matched = analysis.results || analysis.matched_ingredients || [];
+  if (unknownNames.length > 0 && isApiKeyConfigured()) {
+    try {
+      // Use the batched function which handles deduplication and batching automatically
+      const aiResponse = await explainIngredientsBatched(unknownNames, MAX_AI_INGREDIENTS);
+      
+      if (aiResponse && Array.isArray(aiResponse)) {
+        aiResults = aiResponse.map(aiResult => ({
+          name: aiResult.name,
+          status: mapAIStatusToStatus(aiResult.status),
+          reason: aiResult.explanation || '',
+          source: 'ai'
+        }));
+      }
+    } catch (aiError) {
+      console.warn(`AI classification failed: ${aiError.message}`);
+      // Don't crash - those ingredients will be marked as Unknown
+    }
+  }
+
+  // Step 4: Build final ingredients array in SAME order as tokens
+  const finalIngredients = [];
+  
+  for (const token of tokens) {
+    const tokenLower = token.toLowerCase().trim();
+    
+    // Check if this token was matched in dataset - strict matching only
+    const datasetMatch = knownResults.find(k =>
+      k.name.toLowerCase().trim() === tokenLower
+    );
+    
+    if (datasetMatch) {
+      finalIngredients.push({
+        name: datasetMatch.name,
+        status: datasetMatch.status,
+        reason: datasetMatch.reason,
+        source: 'dataset'
+      });
+      continue;
+    }
+    
+    // Check if this token was classified by AI - normalized comparison
+    const aiMatch = aiResults.find(a =>
+      a.name.toLowerCase().trim() === tokenLower
+    );
+    
+    if (aiMatch) {
+      finalIngredients.push({
+        name: aiMatch.name,
+        status: aiMatch.status,
+        reason: aiMatch.reason,
+        source: 'ai'
+      });
+      continue;
+    }
+    
+    // Not found anywhere - mark as Unknown
+    finalIngredients.push({
+      name: token,
+      status: 'Unknown',
+      reason: 'Not found in dataset and AI classification unavailable or failed',
+      source: 'unknown'
+    });
+  }
+
+  // Step 5: Calculate summary counts
+  const summary = {
+    safeCount: finalIngredients.filter(ing => ing.status === 'Safe').length,
+    riskyCount: finalIngredients.filter(ing => ing.status === 'Risky').length,
+    restrictedCount: finalIngredients.filter(ing => ing.status === 'Restricted').length,
+    unknownCount: finalIngredients.filter(ing => ing.status === 'Unknown').length
+  };
+
+  // Step 6: Determine overall risk level (highest severity)
+  let risk_level = 'LOW';
+  if (finalIngredients.some(ing => ing.status === 'Restricted')) {
+    risk_level = 'HIGH';
+  } else if (finalIngredients.some(ing => ing.status === 'Risky')) {
+    risk_level = 'MEDIUM';
+  } else if (finalIngredients.some(ing => ing.status === 'Unknown')) {
+    risk_level = 'MEDIUM'; // Unknowns are treated as potentially risky
+  }
+
+  // Step 7: Determine source
+  let source = 'rules';
+  if (datasetAvailable && knownResults.length > 0) {
+    source = aiResults.length > 0 ? 'dataset+ai' : 'dataset';
+  } else if (aiResults.length > 0) {
+    source = 'ai';
+  }
+
   return {
-    safeCount: matched.filter(m => (m.risk_level === 'LOW' || m.status === 'Safe')).length,
-    riskyCount: matched.filter(m => (m.risk_level === 'MEDIUM' || m.status === 'Risky')).length,
-    restrictedCount: matched.filter(m => (m.risk_level === 'HIGH' || m.status === 'Restricted')).length
+    risk_level,
+    overallRisk: risk_level,
+    ingredients: finalIngredients,
+    summary,
+    source
   };
 }
 
 /**
- * Convert AI result format to match rule-based format for unified response
- * @param {Object} aiResult - Result from AI service
- * @returns {Object} - Converted result in unified format with summary
+ * Create empty analysis result when no ingredients found
+ */
+function createEmptyAnalysisResult() {
+  return {
+    risk_level: 'LOW',
+    overallRisk: 'LOW',
+    ingredients: [],
+    summary: {
+      safeCount: 0,
+      riskyCount: 0,
+      restrictedCount: 0,
+      unknownCount: 0
+    },
+    source: 'rules'
+  };
+}
+
+/**
+ * Map status to database risk value
+ */
+function mapStatusToDbValue(status) {
+  switch (status) {
+    case 'Safe':
+      return 'safe';
+    case 'Risky':
+      return 'risky';
+    case 'Restricted':
+      return 'restricted';
+    default:
+      return 'unknown';
+  }
+}
+
+/**
+ * Map AI status to standard status (Safe|Risky|Restricted|Unknown)
+ */
+function mapAIStatusToStatus(status) {
+  if (!status) return 'Unknown';
+  
+  const normalized = String(status).toLowerCase().trim();
+  
+  if (normalized === 'safe') return 'Safe';
+  if (normalized === 'risky') return 'Risky';
+  if (normalized === 'restricted') return 'Restricted';
+  
+  return 'Unknown';
+}
+
+/**
+ * Calculate summary counts from analysis results
+ */
+function calculateSummary(analysis) {
+  if (!analysis.ingredients || analysis.ingredients.length === 0) {
+    return {
+      safeCount: 0,
+      riskyCount: 0,
+      restrictedCount: 0,
+      unknownCount: 0
+    };
+  }
+  
+  return {
+    safeCount: analysis.ingredients.filter(ing => ing.status === 'Safe').length,
+    riskyCount: analysis.ingredients.filter(ing => ing.status === 'Risky').length,
+    restrictedCount: analysis.ingredients.filter(ing => ing.status === 'Restricted').length,
+    unknownCount: analysis.ingredients.filter(ing => ing.status === 'Unknown').length
+  };
+}
+
+/**
+ * Convert AI result format to rule-based format for unified response
  */
 function convertAIRuleToFormat(aiResult) {
-  // Convert AI format to unified format
   const matchedIngredients = aiResult.matched_ingredients.map((ing) => ({
     name: ing.name,
     risk_level: ing.risk === 'HIGH' ? 'HIGH' : ing.risk === 'LOW' ? 'LOW' : 'MEDIUM',
     reason: ing.reason || ''
   }));
 
-  // Calculate summary
   const summary = {
     safeCount: matchedIngredients.filter(m => m.risk_level === 'LOW').length,
     riskyCount: matchedIngredients.filter(m => m.risk_level === 'MEDIUM').length,
     restrictedCount: matchedIngredients.filter(m => m.risk_level === 'HIGH').length
   };
 
-  // Determine overall risk level
   let risk_level = 'LOW';
   if (matchedIngredients.some(m => m.risk_level === 'HIGH')) {
     risk_level = 'HIGH';
@@ -451,3 +585,4 @@ function convertAIRuleToFormat(aiResult) {
     model_version: aiResult.model_version,
   };
 }
+

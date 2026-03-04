@@ -207,8 +207,7 @@
       "post": {
         "tags": ["Scan"],
         "summary": "Scan an ingredient label image (OCR -> analysis)",
-        "description": "Upload a JPG/PNG image of an ingredient label. Returns extracted text and classified ingredients.",
-        "security": [{ "bearerAuth": [] }],
+        "description": "Upload a JPG/PNG image of an ingredient label. Returns extracted text and classified ingredients. PUBLIC endpoint - works for guests and authenticated users. If authenticated, scan is saved to history. If guest, results are returned without saving.",
         "requestBody": {
           "required": true,
           "content": {
@@ -256,8 +255,7 @@
       "post": {
         "tags": ["Scan"],
         "summary": "Analyze edited OCR text (no image)",
-        "description": "Analyze ingredient text using dataset (PostgreSQL), AI service, or built-in rules. Returns risk level and matched ingredients.",
-        "security": [{ "bearerAuth": [] }],
+        "description": "Analyze ingredient text using dataset (PostgreSQL), AI service, or built-in rules. Returns risk level and matched ingredients. PUBLIC endpoint - works for guests and authenticated users. If authenticated, scan is saved to history. If guest, results are returned without saving.",
         "requestBody": {
           "required": true,
           "content": {
@@ -493,6 +491,11 @@
             "type": "string",
             "description": "Ingredient text to analyze (can be raw OCR output or edited text)",
             "example": "Ingredients: Aqua, Glycerin, Paraben, Fragrance"
+          },
+          "productCategory": {
+            "type": "string",
+            "description": "Optional product category (e.g., Skincare, Haircare)",
+            "example": "Skincare"
           }
         }
       },
@@ -508,78 +511,78 @@
             "type": "string",
             "description": "The input text that was analyzed"
           },
+          "ingredientsText": {
+            "type": "string",
+            "description": "Extracted ingredients section from the text"
+          },
+          "productCategory": {
+            "type": "string",
+            "nullable": true,
+            "description": "Product category if provided"
+          },
           "risk_level": {
             "type": "string",
             "enum": ["LOW", "MEDIUM", "HIGH"],
             "description": "Overall risk level based on matched ingredients"
           },
-          "matched_ingredients": {
+          "overallRisk": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH"],
+            "description": "Overall risk level (same as risk_level)"
+          },
+          "ingredients": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
                 "name": {
                   "type": "string",
-                  "description": "Ingredient name from dataset"
+                  "description": "Ingredient name"
                 },
-                "risk_level": {
+                "status": {
                   "type": "string",
-                  "enum": ["LOW", "MEDIUM", "HIGH"]
+                  "enum": ["Safe", "Risky", "Restricted", "Unknown"],
+                  "description": "Safety status of the ingredient"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": ["dataset", "ai", "unknown"],
+                  "description": "Source of classification: dataset, ai, or unknown"
                 },
                 "reason": {
                   "type": "string",
                   "description": "Explanation of the risk assessment"
                 }
               }
-            }
-          },
-          "explanations": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "List of explanations for flagged ingredients"
-          },
-          "source": {
-            "type": "string",
-            "enum": ["dataset", "ai", "rules"],
-            "description": "Source of analysis: dataset (PostgreSQL), ai (external AI service), or rules (built-in rules)"
-          },
-          "recommendations": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Recommendations (only present when source is 'ai')"
-          },
-          "model_version": {
-            "type": "string",
-            "description": "AI model version (only present when source is 'ai')"
-          },
-          "ingredients": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "List of normalized ingredient tokens (only present when source is 'rules')"
-          },
-          "results": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "ingredient": { "type": "string" },
-                "status": { "type": "string" },
-                "explanation": { "type": "string" },
-                "matchedKey": { "type": "string", "nullable": true }
-              }
             },
-            "description": "Detailed results (only present when source is 'rules')"
+            "description": "Complete list of all ingredients with their classifications, in the same order as parsed"
           },
           "summary": {
             "type": "object",
             "properties": {
-              "total": { "type": "integer" },
-              "safe": { "type": "integer" },
-              "risky": { "type": "integer" },
-              "restricted": { "type": "integer" },
-              "unknown": { "type": "integer" }
+              "safeCount": {
+                "type": "integer",
+                "description": "Number of Safe ingredients"
+              },
+              "riskyCount": {
+                "type": "integer",
+                "description": "Number of Risky ingredients"
+              },
+              "restrictedCount": {
+                "type": "integer",
+                "description": "Number of Restricted ingredients"
+              },
+              "unknownCount": {
+                "type": "integer",
+                "description": "Number of Unknown ingredients"
+              }
             },
-            "description": "Summary counts (only present when source is 'rules')"
+            "description": "Summary counts of ingredient classifications"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["dataset", "dataset+ai", "ai", "rules"],
+            "description": "Source of analysis: dataset only, dataset+AI for unknowns, AI only, or rules"
           },
           "disclaimer": {
             "type": "string"
@@ -602,26 +605,99 @@
       "ScanResponse": {
         "type": "object",
         "properties": {
-          "extractedText": { "type": "string" },
-          "scanId": { "type": "integer" },
-          "productCategory": { "type": "string", "nullable": true },
-          "ingredients": { "type": "array", "items": { "type": "string" } },
-          "results": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/IngredientResult" }
+          "scanId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "ID of saved scan (if user is authenticated)"
           },
-          "summary": { "$ref": "#/components/schemas/ScanSummary" },
-          "disclaimer": { "type": "string" }
+          "saved": {
+            "type": "boolean",
+            "description": "Whether the scan was saved to user history"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["user", "guest"],
+            "description": "User mode: 'user' if authenticated, 'guest' otherwise"
+          },
+          "extractedText": {
+            "type": "string",
+            "description": "Raw OCR text from the image"
+          },
+          "ingredientsText": {
+            "type": "string",
+            "description": "Extracted ingredients section"
+          },
+          "productCategory": {
+            "type": "string",
+            "nullable": true,
+            "description": "Product category if provided"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH"],
+            "description": "Overall risk level"
+          },
+          "overallRisk": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH"],
+            "description": "Overall risk level"
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Ingredient name"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["Safe", "Risky", "Restricted", "Unknown"]
+                },
+                "source": {
+                  "type": "string",
+                  "enum": ["dataset", "ai", "unknown"]
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Complete list of all ingredients with their classifications"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ScanSummary"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["dataset", "dataset+ai", "ai", "rules"],
+            "description": "Source of analysis"
+          },
+          "disclaimer": {
+            "type": "string"
+          }
         }
       },
       "ScanSummary": {
         "type": "object",
         "properties": {
-          "total": { "type": "integer" },
-          "safe": { "type": "integer" },
-          "risky": { "type": "integer" },
-          "restricted": { "type": "integer" },
-          "unknown": { "type": "integer" }
+          "safeCount": {
+            "type": "integer",
+            "description": "Number of Safe ingredients"
+          },
+          "riskyCount": {
+            "type": "integer",
+            "description": "Number of Risky ingredients"
+          },
+          "restrictedCount": {
+            "type": "integer",
+            "description": "Number of Restricted ingredients"
+          },
+          "unknownCount": {
+            "type": "integer",
+            "description": "Number of Unknown ingredients"
+          }
         }
       },
       "ScanHistoryItem": {

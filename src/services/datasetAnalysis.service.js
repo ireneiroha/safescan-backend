@@ -1,5 +1,5 @@
 const db = require('../db');
-const { parseIngredientTokens } = require('../utils/extractIngredientsSection');
+const { parseIngredientTokens, extractIngredientsSection } = require('../utils/extractIngredientsSection');
 
 /**
  * Query dataset_rows table to find ingredient matches.
@@ -33,31 +33,32 @@ async function analyzeWithDataset(tokens) {
       const matchedNames = new Set();
       
       for (const token of tokens) {
-        // Skip empty tokens
-        if (!token || token.trim() === '') {
-          continue;
-        }
+        // Clean token before querying
+        const cleaned = token.trim().toLowerCase();
+        if (!cleaned) continue;
         
         // First: Exact token match on ingredient_name (case-insensitive)
         let result = await client.query(
           `SELECT ingredient_name, risk_level, reason, aliases 
            FROM dataset_rows 
-           WHERE LOWER(ingredient_name) = LOWER($1)`,
-          [token]
+           WHERE LOWER(ingredient_name) = $1`,
+          [cleaned]
         );
         
         // Second: Alias match only if exact match fails
-        // Only match whole tokens in comma-separated aliases list
+        // Use trim-safe version to handle spaces after commas
         if (result.rows.length === 0) {
           result = await client.query(
             `SELECT ingredient_name, risk_level, reason, aliases 
              FROM dataset_rows 
-             WHERE $1 = ANY(string_to_array(LOWER(aliases), ','))`,
-            [token.toLowerCase()]
+             WHERE EXISTS (
+               SELECT 1
+               FROM unnest(string_to_array(LOWER(COALESCE(aliases,'')), ',')) a(alias)
+               WHERE TRIM(a.alias) = $1
+             )`,
+            [cleaned]
           );
         }
-        
-        // NO substring/partial matching - removed the old contains match
         
         if (result.rows.length > 0) {
           const row = result.rows[0];
@@ -127,6 +128,107 @@ async function analyzeWithDataset(tokens) {
     // Log error and re-throw to allow fallback to rule-based analysis
     console.error('Dataset analysis error:', error.message);
     throw error;
+  }
+}
+
+/**
+ * Match ingredients against dataset and return known results + unknown names.
+ * Preserves the original order of tokens and deduplicates unknownNames.
+ * 
+ * @param {string[]} tokens - Array of normalized ingredient tokens (in order)
+ * @returns {Promise<Object>} - { knownResults: [], unknownNames: [] }
+ */
+async function matchIngredientsWithDataset(tokens) {
+  if (!tokens || tokens.length === 0) {
+    return { knownResults: [], unknownNames: [] };
+  }
+
+  try {
+    const client = await db.pool.connect();
+    
+    try {
+      const knownResults = [];
+      const unknownNames = [];
+      const knownLower = new Set(); // Track known results to avoid duplicates in order
+      const unknownLower = new Set(); // Track unknown names to deduplicate
+      
+      for (const token of tokens) {
+        // Clean token before querying
+        const cleaned = token.trim().toLowerCase();
+        if (!cleaned) continue;
+        
+        // First: Exact token match on ingredient_name (case-insensitive)
+        let result = await client.query(
+          `SELECT ingredient_name, risk_level, reason, aliases 
+           FROM dataset_rows 
+           WHERE LOWER(ingredient_name) = $1`,
+          [cleaned]
+        );
+        
+        // Second: Alias match only if exact match fails
+        // Use trim-safe version to handle spaces after commas
+        if (result.rows.length === 0) {
+          result = await client.query(
+            `SELECT ingredient_name, risk_level, reason, aliases 
+             FROM dataset_rows 
+             WHERE EXISTS (
+               SELECT 1
+               FROM unnest(string_to_array(LOWER(COALESCE(aliases,'')), ',')) a(alias)
+               WHERE TRIM(a.alias) = $1
+             )`,
+            [cleaned]
+          );
+        }
+        
+        if (result.rows.length > 0) {
+          const row = result.rows[0];
+          const rowLower = row.ingredient_name.toLowerCase();
+          
+          // Only add if not already added (preserve first appearance order)
+          if (!knownLower.has(rowLower)) {
+            knownLower.add(rowLower);
+            knownResults.push({
+              input: token,
+              name: row.ingredient_name,
+              status: mapDatasetRiskToStatus(row.risk_level),
+              reason: row.reason,
+              source: 'dataset'
+            });
+          }
+        } else {
+          // Not found in dataset - add to unknown list if not already there
+          if (!unknownLower.has(cleaned)) {
+            unknownLower.add(cleaned);
+            unknownNames.push(token); // Keep original casing
+          }
+        }
+      }
+      
+      return { knownResults, unknownNames };
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('Dataset match error:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Map dataset risk level to status string (Safe|Risky|Restricted)
+ */
+function mapDatasetRiskToStatus(riskLevel) {
+  switch (riskLevel) {
+    case 'LOW':
+      return 'Safe';
+    case 'MEDIUM':
+      return 'Risky';
+    case 'HIGH':
+      return 'Restricted';
+    default:
+      return 'Unknown';
   }
 }
 
@@ -219,7 +321,10 @@ function mapRiskLevelToScanRisk(riskLevel) {
 module.exports = {
   analyzeWithDataset,
   analyzeTextWithDataset,
+  matchIngredientsWithDataset,
   isDatasetAvailable,
   mapRiskLevelToScanRisk,
-  parseIngredientTokens
+  parseIngredientTokens,
+  extractIngredientsSection
 };
+
