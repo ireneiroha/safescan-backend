@@ -1,122 +1,161 @@
-SafeScan Backend (MVP)
+<img width="1512" height="860" alt="Screenshot 2026-02-25 at 5 57 47 PM" src="https://github.com/user-attachments/assets/5780a5e4-ce4b-44b8-b4ea-8dd04b6e7d0a" />
 
-Node.js + Express backend for SafeScan – Product Ingredients Safety Checker.
 
-Project Purpose
+# SafeScan
 
-SafeScan helps users understand whether the ingredients in personal care or food products are safe, risky, or restricted by scanning product labels and analyzing ingredient lists using OCR and rule-based classification.
+SafeScan is a web application that lets users scan product ingredient labels using their camera or uploaded images, then analyzes each ingredient for safety concerns using AI-powered OCR and a clinical ingredient database.
 
-Disclaimer: SafeScan provides informational guidance only and is not medical advice.
+---
 
-MVP Features
+## Features
 
-Upload an image (JPG/PNG) and extract text using Tesseract OCR
+- **Live Label Scanning** — Point your camera at any ingredient list; OCR reads it instantly
+- **Ingredient Safety Analysis** — Each ingredient is flagged as safe, risky, or dangerous
+- **Personalized Alerts** — Set your own allergen or sensitivity preferences
+- **Deep Ingredient Lookup** — Search over 50,000 cosmetic and food ingredients
+- **Scan History** — Review past scans and results
+- **Authentication** — Register and sign in to save preferences and history
 
-Parse extracted text into an ingredient list
+---
 
-Classify each ingredient as Safe / Risky / Restricted / Unknown
+## Tech Stack
 
-Return plain-language explanations and a summary report
+**Frontend**
+- React 19 + Vite 7
+- React Router v7
+- Tailwind CSS v4
 
-Tech Stack
+**Backend**
+- Node.js + Express
+- PostgreSQL (`pg`)
+- Tesseract.js (OCR)
+- JWT authentication (`jsonwebtoken` + `bcrypt`)
+- Google APIs integration
+- Swagger UI for API docs
 
-Node.js, Express
+---
 
-Tesseract.js – OCR processing
+## Project Structure
 
-Multer – image upload handling
+```
+SafeScan/
+├── frontend/          # React + Vite client
+│   └── src/
+│       ├── pages/     # Landing, Scan, OCRReview, Results, History, Settings, Auth
+│       ├── components/# UI, layout, camera, ingredients, feedback
+│       ├── context/   # AuthContext
+│       ├── hooks/     # useCamera, useUpload, useLoading
+│       └── routes/    # AppRoutes
+│
+└── backend/
+    └── safescan-backend-final/
+        └── src/
+            ├── controllers/
+            ├── routes/
+            ├── services/
+            ├── repositories/
+            ├── middlewares/
+            ├── db/
+            └── utils/
+```
 
-Helmet – security headers
+---
 
-Rate limiting – basic API protection
+## Getting Started
 
-Project Structure
-src/
- ├── controllers/
- ├── routes/
- ├── services/
- ├── data/            # ingredient reference list
- ├── utils/
- ├── app.js
- └── server.js
-Setup
+### Prerequisites
+
+- Node.js >= 18
+- PostgreSQL database
+- npm
+
+### Frontend
+
+```bash
+cd frontend
 npm install
-copy .env.example .env
 npm run dev
+```
 
-Server runs on:
+Runs on `http://localhost:5173` by default.
 
-http://localhost:5000
-Environment Variables
+### Backend
 
-Example .env:
+```bash
+cd backend/safescan-backend-final
+npm install
+cp .env.example .env   # fill in your environment variables
+npm run db:init        # initialize the database
+npm run dev
+```
 
-PORT=5000
-NODE_ENV=development
-DATABASE_URL=postgres://username:password@localhost:5432/safescan
-API Endpoints
-Health Check
+Runs on `http://localhost:5000` by default.
 
-GET /api/health
+### Environment Variables (Backend)
 
-Scan Label Image (OCR + Analysis)
+| Variable      | Description                        |
+|---------------|------------------------------------|
+| `PORT`        | Server port (default: 5000)        |
+| `JWT_SECRET`  | Secret key for JWT signing         |
+| `CORS_ORIGIN` | Allowed frontend origin            |
+| `DATABASE_URL`| PostgreSQL connection string       |
 
-POST /api/scan
-Content-Type: multipart/form-data
+---
 
-Form field:
+## Available Scripts
 
-image → JPG/PNG file
+### Frontend
 
-Example:
+| Command           | Description              |
+|-------------------|--------------------------|
+| `npm run dev`     | Start development server |
+| `npm run build`   | Build for production     |
+| `npm run preview` | Preview production build |
+| `npm run lint`    | Run ESLint               |
 
-curl -X POST http://localhost:5000/api/scan \
-  -F "image=@label.jpg"
-Analyze Edited Text (No OCR)
+### Backend
 
-POST /api/scan/analyze
-Content-Type: application/json
+| Command           | Description                     |
+|-------------------|---------------------------------|
+| `npm run dev`     | Start with nodemon (hot reload) |
+| `npm run start`   | Start production server         |
+| `npm run db:init` | Initialize database schema      |
 
-Body:
+---
 
-{
-  "text": "Water, Glycerin, Fragrance, Methylparaben"
-}
+## Pages
 
-Example:
+| Route              | Description                        |
+|--------------------|------------------------------------|
+| `/`                | Landing page                       |
+| `/register`        | Sign up                            |
+| `/login`           | Sign in                            |
+| `/scan-home`       | Scan entry point                   |
+| `/lookup`          | Manual ingredient search           |
+| `/history`         | Past scan history                  |
+| `/scan-result/:id` | Individual scan results            |
+| `/settings`        | User preferences                   |
+| `/privacy`         | Privacy policy                     |
 
-curl -X POST http://localhost:5000/api/scan/analyze \
-  -H "Content-Type: application/json" \
-  -d '{ "text": "Water, Glycerin, Fragrance, Methylparaben" }'
-Example API Response
-{
-  "ingredients": [
-    { "name": "Glycerin", "status": "Safe" },
-    { "name": "Fragrance", "status": "Risky" },
-    { "name": "Methylparaben", "status": "Restricted" }
-  ],
-  "summary": "This product contains 1 risky and 1 restricted ingredient."
-}
-API Documentation (Swagger)
+---
 
-After starting the server, open:
+## About                                                                                                                                                                                                                                                                                                                                                                                                  
+SafeScan was built as a collaboration project during the **Women Techsters Fellowship** by [Tech4Dev](https://tech4dev.com). The fellowship supports women in technology across Africa, and this project was developed as part of that program.                                                                                                                                                              
+                                                                                                                                                                                                              
+## Contributions                                                                                                                                                                                                                                                                                                                                                                                                   
+  Contributions, ideas, and additions are welcome!                                                                                                                                                          
+                                                                                                                                                                                                            
+If you'd like to improve SafeScan — whether it's a new feature, a bug fix, better UI, or expanded ingredient data — feel free to get involved:                                                            
+                                                                                                                                                                                                      
+ 1. Fork the repository                                                                                                                                                                                    
+ 2. Create a new branch (`git checkout -b feature/your-feature-name`)                                                                                                                                      
+ 3. Commit your changes (`git commit -m 'Add your feature'`)                                                                                                                                               
+ 4. Push to your branch (`git push origin feature/your-feature-name`)                                                                                                                                      
+ 5. Open a Pull Request                                                                                                                                                                                                                                                                                                                                                                                     
+  +For major changes, please open an issue first to discuss what you'd like to change.                                                                                                                       
+ ## License 
 
-http://localhost:5000/api/docs
-Database (Docker PostgreSQL)
-docker run --name safescan-postgres \
-  -e POSTGRES_PASSWORD=mypassword \
-  -e POSTGRES_DB=safescan \
-  -p 5432:5432 -d postgres:latest
+ ISC
 
-npm run db:init
-Notes for the Team
 
-Ingredient reference list: src/data/ingredients.json
 
-Add more real-world ingredients to reduce Unknown results
-
-Keep uploaded images under 5MB and tightly cropped for better OCR accuracy
-
-License
-
-For capstone project purposes.
