@@ -27,9 +27,14 @@ const MAX_AI_INGREDIENTS = parseInt(process.env.MAX_AI_INGREDIENTS || '25', 10);
 exports.scanImage = async (req, res) => {
   const client = await db.pool.connect();
   
+  // DEBUG: Log auth info
+  console.log('[ScanController] Authorization header:', req.headers.authorization);
+  console.log('[ScanController] req.user:', req.user);
+  
   // Determine if user is authenticated
   const isAuthenticated = req.user && req.user.id;
   const mode = isAuthenticated ? 'user' : 'guest';
+  console.log('[ScanController] isAuthenticated:', isAuthenticated, 'mode:', mode);
   
   try {
     // Check if image file is present
@@ -223,9 +228,14 @@ exports.scanImage = async (req, res) => {
 exports.analyzeText = async (req, res, next) => {
   const client = await db.pool.connect();
   
+  // DEBUG: Log auth info
+  console.log('[ScanController] Authorization header:', req.headers.authorization);
+  console.log('[ScanController] req.user:', req.user);
+  
   // Determine if user is authenticated
   const isAuthenticated = req.user && req.user.id;
   const mode = isAuthenticated ? 'user' : 'guest';
+  console.log('[ScanController] isAuthenticated:', isAuthenticated, 'mode:', mode);
   
   try {
     const { text, productCategory } = req.body || {};
