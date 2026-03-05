@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS scans (
   image_path TEXT,
   ocr_text TEXT,
   product_category TEXT,
+  overall_risk TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
