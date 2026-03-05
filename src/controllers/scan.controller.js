@@ -5,10 +5,9 @@ const {
   analyzeTextWithDataset, 
   isDatasetAvailable, 
   mapRiskLevelToScanRisk, 
-  parseIngredientTokens,
-  matchIngredientsWithDataset,
-  extractIngredientsSection 
+  matchIngredientsWithDataset
 } = require('../services/datasetAnalysis.service');
+const { extractIngredientsSection, parseIngredientTokens } = require('../utils/extractIngredientsSection');
 const { explainIngredients, explainIngredientsBatched, isApiKeyConfigured } = require('../services/aiExplain.service');
 const db = require('../db');
 

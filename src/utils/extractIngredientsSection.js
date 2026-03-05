@@ -150,5 +150,4 @@ function parseIngredientTokens(text) {
   return tokens;
 }
 
-module.exports = extractIngredientsSection;
-module.exports.parseIngredientTokens = parseIngredientTokens;
+module.exports = { extractIngredientsSection, parseIngredientTokens };
