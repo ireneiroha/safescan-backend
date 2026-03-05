@@ -1,41 +1,20 @@
-# TODO - Update Scan Endpoints with Automatic AI Classification
+# TODO: Fix Scan Saving Issue
 
-## Task
-Update POST /api/scan and POST /api/scan/analyze so AI runs automatically and returns classifications for ALL extracted ingredients.
+## Task Summary
+Fix the scan controller so authenticated requests save scans and return scanId.
 
 ## Steps
-
-- [x] 1. Analyze current codebase and understand the flow
-- [x] 2. Create plan for implementation
-- [x] 3. Modify src/controllers/scan.controller.js
-  - [x] 3.1 Update scanImage function with new flow
-  - [x] 3.2 Update analyzeText function with new flow
-  - [x] 3.3 Add helper functions for merging results
-- [x] 4. Create optionalAuth middleware for guest scanning
-- [x] 5. Update routes/index.js to use optionalAuth
-- [x] 6. Update openapi.json documentation
+- [x] 1. Update userId derivation in scanImage controller to use nullish coalescing operator (??)
+- [x] 2. Update userId derivation in analyzeText controller to use nullish coalescing operator (??)
+- [x] 3. Verify overall_risk is correctly mapped from analysis.risk_level
+- [x] 4. Ensure scan_ingredients inserts use the returned scanId
+- [x] 5. Verify rollback and detailed error logging is present
+- [x] 6. Verify saveError is included in API response when saved=false
 
 ## Implementation Details
-
-Flow:
-1. OCR -> get raw text
-2. Extract ONLY ingredients section (start at "INGREDIENTS", stop at WARNING/DIRECTIONS/etc)
-3. Split into ingredient list, trim, dedupe
-4. Dataset classify known ingredients
-5. For ingredients not found in dataset_rows, automatically call existing AI endpoint/service (OpenAI) in-process and classify them
-6. Merge dataset + AI results into one response with summary counts
-7. Save scan history with productCategory and summary fields populated (only for authenticated users)
-
-Requirements:
-- AI_API_KEY, AI_PROVIDER, AI_MODEL from env - ✅ Uses existing aiExplain.service.js
-- If AI unavailable, return unknowns but do not crash - ✅ Graceful fallback
-- Response must include all ingredients, not only dataset matches - ✅ Returns all ingredients in `ingredients` array
-
-## New Features
-
-1. **Automatic AI Classification**: Unmatched ingredients are automatically sent to AI for classification
-2. **Guest Scanning**: Both scan endpoints now work without authentication
-3. **All Ingredients Returned**: Response includes `ingredients` array with ALL ingredients classified
-4. **Source Tracking**: Each ingredient has a `source` field (dataset/ai/unknown)
-5. **Summary Counts**: Response includes `summary` with safeCount, riskyCount, restrictedCount, unknownCount
+- Use: const userId = req.user?.id ?? req.user?.userId ?? req.user?.sub ?? null;
+- Ensure INSERT includes: user_id, image_path, ocr_text, product_category, overall_risk
+- Use RETURNING id to get the inserted scan ID
+- Log dbError: message, code, detail, constraint
+- Include saveError in response when saved=false
 

@@ -32,7 +32,8 @@ exports.scanImage = async (req, res) => {
   console.log('[ScanController] req.user:', req.user);
   
   // Derive userId safely from token payload (supports id, userId, sub)
-  const userId = req.user?.id || req.user?.userId || req.user?.sub || null;
+  // Use nullish coalescing to properly handle falsy values
+  const userId = req.user?.id ?? req.user?.userId ?? req.user?.sub ?? null;
   const isAuthenticated = !!userId;
   const mode = isAuthenticated ? 'user' : 'guest';
   console.log('[ScanController] userId:', userId, 'isAuthenticated:', isAuthenticated, 'mode:', mode);
@@ -246,7 +247,8 @@ exports.analyzeText = async (req, res, next) => {
   console.log('[ScanController] req.user:', req.user);
   
   // Derive userId safely from token payload (supports id, userId, sub)
-  const userId = req.user?.id || req.user?.userId || req.user?.sub || null;
+  // Use nullish coalescing to properly handle falsy values
+  const userId = req.user?.id ?? req.user?.userId ?? req.user?.sub ?? null;
   const isAuthenticated = !!userId;
   const mode = isAuthenticated ? 'user' : 'guest';
   console.log('[ScanController] userId:', userId, 'isAuthenticated:', isAuthenticated, 'mode:', mode);
