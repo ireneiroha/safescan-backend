@@ -107,6 +107,20 @@ const initSchema = async () => {
       console.warn('⚠️ Some migrations may have failed (possibly already applied):', migrationErr.message);
     }
     
+    // Step 3: Ensure critical columns exist directly (fallback protection)
+    // This ensures scans.overall_risk exists regardless of migration state
+    try {
+      await pool.query(
+        'ALTER TABLE IF EXISTS scans ADD COLUMN IF NOT EXISTS overall_risk TEXT'
+      );
+      console.log('Schema migration applied: scans.overall_risk ensured');
+    } catch (colErr) {
+      // Ignore if column already exists
+      if (colErr.code !== '42701') { // 42701 = duplicate_column
+        console.warn('⚠️ Error ensuring overall_risk column:', colErr.message);
+      }
+    }
+    
     console.log('✅ Database schema fully initialized');
     return true;
   } catch (err) {
