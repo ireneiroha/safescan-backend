@@ -68,6 +68,26 @@ app.use(rateLimit({
 // API Docs (Swagger)
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, { explorer: true }));
 
+// Root endpoint - returns API info
+app.get('/', (req, res) => {
+  res.json({
+    name: 'SafeScan API',
+    status: 'OK',
+    docs: '/api/docs',
+    health: '/api/health',
+    requestId: req.id,
+  });
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    requestId: req.id,
+    uptime: process.uptime(),
+  });
+});
+
 // Routes
 const routes = require('./routes');
 app.use('/api', routes);
