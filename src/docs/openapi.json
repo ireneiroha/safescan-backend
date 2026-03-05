@@ -208,6 +208,7 @@
         "tags": ["Scan"],
         "summary": "Scan an ingredient label image (OCR -> analysis)",
         "description": "Upload a JPG/PNG image of an ingredient label. Returns extracted text and classified ingredients. PUBLIC endpoint - works for guests and authenticated users. If authenticated, scan is saved to history. If guest, results are returned without saving.",
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -256,6 +257,7 @@
         "tags": ["Scan"],
         "summary": "Analyze edited OCR text (no image)",
         "description": "Analyze ingredient text using dataset (PostgreSQL), AI service, or built-in rules. Returns risk level and matched ingredients. PUBLIC endpoint - works for guests and authenticated users. If authenticated, scan is saved to history. If guest, results are returned without saving.",
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
