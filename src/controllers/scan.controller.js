@@ -31,10 +31,11 @@ exports.scanImage = async (req, res) => {
   console.log('[ScanController] Authorization header:', req.headers.authorization);
   console.log('[ScanController] req.user:', req.user);
   
-  // Determine if user is authenticated
-  const isAuthenticated = req.user && req.user.id;
+  // Derive userId safely from token payload (supports id, userId, sub)
+  const userId = req.user?.id || req.user?.userId || req.user?.sub || null;
+  const isAuthenticated = !!userId;
   const mode = isAuthenticated ? 'user' : 'guest';
-  console.log('[ScanController] isAuthenticated:', isAuthenticated, 'mode:', mode);
+  console.log('[ScanController] userId:', userId, 'isAuthenticated:', isAuthenticated, 'mode:', mode);
   
   try {
     // Check if image file is present
@@ -121,8 +122,7 @@ exports.scanImage = async (req, res) => {
     // Extract ingredients section from OCR text
     const ingredientsText = extractIngredientsSection(extractedText);
 
-    // Get user ID if authenticated
-    const userId = isAuthenticated ? req.user.id : null;
+    // Get productCategory from body
     const productCategory = req.body.productCategory || null;
 
     // Perform full analysis: dataset + AI for unmatched
@@ -130,6 +130,7 @@ exports.scanImage = async (req, res) => {
 
     let scanId = null;
     let saved = false;
+    let saveError = null;
 
     // Only save to database if user is authenticated
     if (isAuthenticated) {
@@ -183,12 +184,17 @@ exports.scanImage = async (req, res) => {
         saved = true;
       } catch (dbError) {
         await client.query('ROLLBACK').catch(() => {});
-        console.warn(`Failed to save scan to database: ${dbError.message}`);
+        // Robust logging for DB save failures
+        const errorMsg = dbError.message || 'Unknown error';
+        const errorCode = dbError.code || 'UNKNOWN_CODE';
+        const errorDetail = dbError.detail || '';
+        console.warn(`DB save failed: ${errorMsg}, code: ${errorCode}, detail: ${errorDetail}`);
+        saveError = `${errorMsg}${errorDetail ? ' - ' + errorDetail : ''}`;
         saved = false;
       }
     }
 
-    res.json({
+    const response = {
       scanId,
       saved,
       mode,
@@ -202,7 +208,14 @@ exports.scanImage = async (req, res) => {
       source: analysis.source,
       disclaimer:
         'SafeScan provides informational guidance only and is not medical advice. If you have a reaction or concern, consult a healthcare professional.',
-    });
+    };
+    
+    // Include saveError for debugging when saved is false
+    if (!saved && saveError) {
+      response.saveError = saveError;
+    }
+    
+    res.json(response);
   } catch (e) {
     console.error('Scan image error:', e.message);
     
@@ -232,10 +245,11 @@ exports.analyzeText = async (req, res, next) => {
   console.log('[ScanController] Authorization header:', req.headers.authorization);
   console.log('[ScanController] req.user:', req.user);
   
-  // Determine if user is authenticated
-  const isAuthenticated = req.user && req.user.id;
+  // Derive userId safely from token payload (supports id, userId, sub)
+  const userId = req.user?.id || req.user?.userId || req.user?.sub || null;
+  const isAuthenticated = !!userId;
   const mode = isAuthenticated ? 'user' : 'guest';
-  console.log('[ScanController] isAuthenticated:', isAuthenticated, 'mode:', mode);
+  console.log('[ScanController] userId:', userId, 'isAuthenticated:', isAuthenticated, 'mode:', mode);
   
   try {
     // Normalize productCategory: accept productCategory or product_category (snake_case alias)
@@ -255,10 +269,9 @@ exports.analyzeText = async (req, res, next) => {
     // Perform full analysis with dataset + AI
     const analysis = await performFullAnalysis(ingredientsText);
 
-    // Get user ID if authenticated
-    const userId = isAuthenticated ? req.user.id : null;
     let scanId = null;
     let saved = false;
+    let saveError = null;
     
     // Only save to database if user is authenticated
     if (isAuthenticated) {
@@ -312,7 +325,12 @@ exports.analyzeText = async (req, res, next) => {
         saved = true;
       } catch (dbError) {
         await client.query('ROLLBACK').catch(() => {});
-        console.warn(`Failed to save scan to database: ${dbError.message}`);
+        // Robust logging for DB save failures
+        const errorMsg = dbError.message || 'Unknown error';
+        const errorCode = dbError.code || 'UNKNOWN_CODE';
+        const errorDetail = dbError.detail || '';
+        console.warn(`DB save failed: ${errorMsg}, code: ${errorCode}, detail: ${errorDetail}`);
+        saveError = `${errorMsg}${errorDetail ? ' - ' + errorDetail : ''}`;
         saved = false;
       }
     }
@@ -333,6 +351,11 @@ exports.analyzeText = async (req, res, next) => {
       disclaimer:
         'SafeScan provides informational guidance only and is not medical advice. If you have a reaction or concern, consult a healthcare professional.',
     };
+    
+    // Include saveError for debugging when saved is false
+    if (!saved && saveError) {
+      response.saveError = saveError;
+    }
 
     res.json(response);
   } catch (e) {
