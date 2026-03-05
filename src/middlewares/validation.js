@@ -21,7 +21,9 @@ const schemas = {
   }).unknown(false),
 
   analyzeText: Joi.object({
-    text: Joi.string().min(1).max(10000).required(),
+    text: Joi.string().min(2).max(10000).required(),
+    productCategory: Joi.string().allow('', null).optional(),
+    product_category: Joi.string().allow('', null).optional(),
   }).unknown(false),
 
   pagination: Joi.object({

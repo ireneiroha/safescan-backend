@@ -238,7 +238,9 @@ exports.analyzeText = async (req, res, next) => {
   console.log('[ScanController] isAuthenticated:', isAuthenticated, 'mode:', mode);
   
   try {
-    const { text, productCategory } = req.body || {};
+    // Normalize productCategory: accept productCategory or product_category (snake_case alias)
+    const productCategory = req.body.productCategory || req.body.product_category || null;
+    const { text } = req.body || {};
     
     // Validate text is required
     if (!text || typeof text !== 'string') {
