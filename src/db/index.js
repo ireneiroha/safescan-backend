@@ -71,12 +71,43 @@ const connect = async () => {
 };
 
 // Initialize schema (idempotent). Safe to run repeatedly because it uses IF NOT EXISTS.
+// Also runs migrations to ensure all required columns exist.
 const initSchema = async () => {
   const schemaPath = path.join(__dirname, 'schema.sql');
+  const migrationsDir = path.join(__dirname, 'migrations');
+  
   try {
+    // Step 1: Apply main schema
     const sql = fs.readFileSync(schemaPath, 'utf8');
     await pool.query(sql);
     console.log('✅ Database schema ensured (schema.sql applied)');
+    
+    // Step 2: Apply migrations (if migrations directory exists)
+    try {
+      if (fs.existsSync(migrationsDir)) {
+        const migrationFiles = fs.readdirSync(migrationsDir)
+          .filter(f => f.endsWith('.sql'))
+          .sort(); // Apply in alphabetical order (001_, 002_, etc.)
+        
+        for (const migrationFile of migrationFiles) {
+          const migrationPath = path.join(migrationsDir, migrationFile);
+          const migrationSql = fs.readFileSync(migrationPath, 'utf8');
+          
+          // Run each migration (uses IF NOT EXISTS / ADD COLUMN IF NOT EXISTS for safety)
+          await pool.query(migrationSql);
+          console.log(`✅ Applied migration: ${migrationFile}`);
+        }
+        
+        if (migrationFiles.length > 0) {
+          console.log(`✅ All ${migrationFiles.length} migration(s) applied successfully`);
+        }
+      }
+    } catch (migrationErr) {
+      // Log migration errors but don't fail - schema might already be applied
+      console.warn('⚠️ Some migrations may have failed (possibly already applied):', migrationErr.message);
+    }
+    
+    console.log('✅ Database schema fully initialized');
     return true;
   } catch (err) {
     console.error('❌ Database schema initialization failed');

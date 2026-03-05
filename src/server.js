@@ -44,8 +44,10 @@ const startServer = async () => {
     console.log('Ensuring database schema...');
     try {
       const ok = await db.initSchema();
-      if (!ok) {
-        console.warn('⚠️ Schema init failed. Some endpoints may still fail until schema is applied.');
+      if (ok) {
+        console.log('✅ Database schema ready');
+      } else {
+        console.warn('⚠️ Schema init returned failure. Some endpoints may still fail until schema is applied.');
       }
     } catch (err) {
       console.warn('⚠️ Schema init threw an error:', err?.message || err);

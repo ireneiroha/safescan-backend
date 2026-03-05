@@ -11,6 +11,11 @@ Fix the scan controller so authenticated requests save scans and return scanId.
 - [x] 5. Verify rollback and detailed error logging is present
 - [x] 6. Verify saveError is included in API response when saved=false
 
+## Database Schema Fix
+- [x] 7. Update initSchema() to also run migrations (including 002_add_overall_risk_to_scans.sql)
+- [x] 8. Add startup log confirming schema applied
+- [x] 9. Ensure schema.sql has overall_risk column in scans table (already present)
+
 ## Implementation Details
 - Use: const userId = req.user?.id ?? req.user?.userId ?? req.user?.sub ?? null;
 - Ensure INSERT includes: user_id, image_path, ocr_text, product_category, overall_risk
