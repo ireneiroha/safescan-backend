@@ -4,13 +4,19 @@ const schemas = {
   register: Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required(),
+    confirmPassword: Joi.any()
+      .valid(Joi.ref('password'))
+      .optional()
+      .messages({ 'any.only': 'Passwords must match' }),
     consent_given: Joi.boolean().valid(true).required()
       .messages({
         'any.only': 'You must agree to the SafeScan Privacy Policy and Disclaimer.',
         'boolean.base': 'Consent must be a boolean value.',
         'any.required': 'You must agree to the SafeScan Privacy Policy and Disclaimer.'
       }),
-  }).unknown(false),
+  })
+    .rename('consentGiven', 'consent_given', { ignoreUndefined: true, override: true })
+    .unknown(true),
 
   login: Joi.object({
     email: Joi.string().email().required(),

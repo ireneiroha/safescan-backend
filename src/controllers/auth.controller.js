@@ -18,7 +18,8 @@ const getJwtSecret = () => {
 
 exports.register = async (req, res) => {
   try {
-    const { email, password, consent_given } = req.body;
+    const { email, password } = req.body;
+    const consent_given = req.body.consent_given ?? req.body.consentGiven;
 
     // Validate consent is given (POPIA/GDPR requirement)
     if (consent_given !== true) {
