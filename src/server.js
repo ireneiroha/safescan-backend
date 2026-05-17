@@ -14,6 +14,7 @@ console.log('Environment check:', {
   PGHOST: process.env.PGHOST ? 'set' : 'not set',
   JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'not set',
   PORT: process.env.PORT || 4000,
+  CORS_ORIGIN: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN : 'not set',
 });
 
 const app = require('./app');

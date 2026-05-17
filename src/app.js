@@ -26,9 +26,20 @@ app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for API
 }));
 
-// CORS for specific origin
+// CORS for specific origin(s)
+const corsOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const allowedOrigins = Array.from(new Set([...corsOrigins, 'http://localhost:5173']));
+console.log('CORS allowed origins:', allowedOrigins);
 app.use(cors({
-  origin: [process.env.CORS_ORIGIN, 'http://localhost:5173'],
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow non-browser tools (curl/postman)
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn(`CORS blocked origin: ${origin}`);
+    return callback(new Error('CORS policy: Origin not allowed'));
+  },
   credentials: true,
 }));
 
